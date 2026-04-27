@@ -1,0 +1,1692 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SedaFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+:root {
+  --bg: #eaf3ff;
+  --bg-strong: #d7e7ff;
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-strong: #ffffff;
+  --line: #c8daf8;
+  --line-strong: #adc7f2;
+  --text: #12345c;
+  --muted: #5c7aa2;
+  --accent: #4068ea;
+  --accent-2: #58ace9;
+  --accent-strong: #263fbe;
+  --accent-soft: #e8f2ff;
+  --sidebar-bg: #0e2046;
+  --sidebar-bg-2: #1d3181;
+  --sidebar-line: rgba(160, 194, 255, 0.16);
+  --danger: #b53f56;
+  --danger-soft: #ffe7ec;
+  --warning-bg: #eef4ff;
+  --warning-line: #bdd3ff;
+  --warning-text: #31529a;
+  --shadow: 0 22px 55px rgba(41, 78, 145, 0.12);
+  --shadow-soft: 0 12px 28px rgba(41, 78, 145, 0.08);
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; min-height: 100%;
+  font-family: "Montserrat", sans-serif;
+  background: radial-gradient(circle at top left, rgba(88,172,233,0.22), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(64,104,234,0.18), transparent 24%),
+    linear-gradient(180deg, #f4f9ff 0%, #e8f1ff 100%);
+  color: var(--text);
+}
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none;
+  background-image: linear-gradient(rgba(255,255,255,0.26) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.26) 1px, transparent 1px);
+  background-size: 48px 48px; opacity: 0.28;
+}
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+.hidden { display: none !important; }
+.auth-gate { min-height: 100vh; display: grid; place-items: center; padding: 32px; }
+.auth-card {
+  width: min(100%, 760px); padding: 34px; border-radius: 32px;
+  border: 1px solid rgba(173,199,242,0.72);
+  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(245,250,255,0.98) 100%);
+  box-shadow: var(--shadow);
+}
+.auth-branding { display: grid; grid-template-columns: 180px 1fr; gap: 28px; align-items: center; margin-bottom: 28px; }
+.auth-branding h2 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.05; letter-spacing: -0.04em; }
+.auth-copy { margin: 0; color: var(--muted); line-height: 1.7; }
+.auth-logo { width: 100%; max-width: 160px; justify-self: center; display: flex; align-items: center; justify-content: center; }
+.auth-logo-placeholder {
+  width: 120px; height: 120px; border-radius: 24px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 2.4rem; font-weight: 800; letter-spacing: -0.04em;
+}
+.auth-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: end; }
+.auth-form .primary-button { min-height: 54px; }
+.auth-error {
+  margin: 0; padding: 14px 16px; border-radius: 16px;
+  border: 1px solid rgba(181,63,86,0.18); background: rgba(255,231,236,0.88);
+  color: var(--danger); font-weight: 600; grid-column: 1 / -1;
+}
+.auth-session-info { margin: 16px 0 0; color: rgba(233,242,255,0.9); font-size: 0.92rem; }
+.app-frame { position: relative; display: grid; grid-template-columns: 340px 1fr; min-height: 100vh; }
+.sidebar {
+  position: relative; z-index: 1; padding: 30px 24px;
+  border-right: 1px solid var(--sidebar-line);
+  background: radial-gradient(circle at top left, rgba(88,172,233,0.28), transparent 26%),
+    linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-2) 100%);
+  color: #eff5ff; box-shadow: inset -1px 0 0 rgba(255,255,255,0.04);
+}
+.sidebar::after {
+  content: ""; position: absolute; right: 24px; bottom: 24px;
+  width: 132px; height: 132px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(88,172,233,0.16), transparent 68%); filter: blur(6px);
+}
+.brand, .sidebar-actions, .patient-list { position: relative; z-index: 1; }
+.brand {
+  padding: 20px; border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%);
+  border: 1px solid rgba(196,220,255,0.16); box-shadow: var(--shadow-soft);
+}
+.brand-logo-button { display: inline-flex; padding: 0; margin: 0 0 18px; border: none; background: transparent; cursor: pointer; }
+.brand-logo-placeholder {
+  width: 180px; height: 52px; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(88,172,233,0.4), rgba(64,104,234,0.3));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 1.2rem; font-weight: 800; letter-spacing: -0.03em;
+}
+.brand h1, .dashboard-header h2, .workspace-header h3, .empty-panel h3 {
+  margin: 0; font-family: "Montserrat", sans-serif; font-weight: 700; letter-spacing: -0.03em;
+}
+.brand h1 { color: #ffffff; font-size: 1.7rem; }
+.brand-copy, .header-copy, .workspace-copy, .empty-panel p, .field small, .section-copy, .muted { color: var(--muted); }
+.brand-copy { color: rgba(233,242,255,0.82); line-height: 1.55; }
+.eyebrow { margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.72rem; font-weight: 700; color: var(--accent-2); }
+.sidebar .eyebrow { color: #8fd2ff; }
+.sidebar-actions { display: grid; gap: 14px; margin: 24px 0; }
+.sidebar-actions button { width: 100%; }
+.primary-button, .secondary-button, .sync-button, .danger-button, .ghost-button, .chip-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 16px; padding: 13px 16px; font-weight: 600;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.primary-button:hover, .secondary-button:hover, .sync-button:hover, .danger-button:hover, .ghost-button:hover, .chip-button:hover { transform: translateY(-1px); }
+.primary-button { background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 52%, var(--accent-strong) 100%); color: #fff; box-shadow: 0 16px 32px rgba(64,104,234,0.3); }
+.secondary-button { background: var(--accent-soft); color: var(--accent-strong); border: 1px solid rgba(88,172,233,0.18); }
+.sync-button { background: #4e8fe8; color: #ffffff; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 14px 28px rgba(37,87,170,0.24); }
+.danger-button { background: var(--danger-soft); color: var(--danger); }
+.ghost-button, .chip-button { background: rgba(255,255,255,0.78); border: 1px solid var(--line); color: var(--text); }
+.search-field, .field { display: grid; gap: 8px; }
+.search-field span, .field span, .section-heading, .card-heading { font-weight: 600; }
+.search-field span { color: rgba(237,243,255,0.92); }
+input, select, textarea {
+  width: 100%; border-radius: 16px; border: 1px solid var(--line);
+  background: rgba(255,255,255,0.96); padding: 13px 14px; color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+}
+.sidebar input { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(181,212,255,0.24); }
+.sidebar input::placeholder { color: rgba(226,238,255,0.72); }
+input:focus, select:focus, textarea:focus { outline: 2px solid rgba(88,172,233,0.2); border-color: var(--accent); }
+textarea { min-height: 96px; resize: vertical; }
+.patient-list { display: grid; gap: 12px; }
+.patient-card { border: 1px solid rgba(183,209,255,0.12); background: rgba(255,255,255,0.08); border-radius: 20px; padding: 15px; backdrop-filter: blur(10px); }
+.patient-card.active { border-color: rgba(143,210,255,0.38); background: linear-gradient(180deg, rgba(95,184,235,0.18) 0%, rgba(255,255,255,0.1) 100%); box-shadow: 0 12px 24px rgba(15,29,73,0.18); }
+.patient-card button { width: 100%; background: transparent; border: none; padding: 0; text-align: left; color: inherit; }
+.patient-card strong { display: block; margin-bottom: 6px; color: #ffffff; }
+.patient-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.85rem; color: rgba(227,238,255,0.76); }
+.main-content { position: relative; z-index: 1; padding: 32px; }
+.dashboard-header, .empty-panel, .workspace, .surface-card {
+  background: var(--panel); border: 1px solid rgba(173,199,242,0.5);
+  border-radius: 30px; box-shadow: var(--shadow); backdrop-filter: blur(12px);
+}
+.dashboard-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1.16fr) minmax(240px, 0.84fr);
+  grid-template-areas: "copy logo" "stats stats";
+  gap: 24px; padding: 28px;
+  background: radial-gradient(circle at top right, rgba(88,172,233,0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(237,245,255,0.88) 100%);
+}
+.dashboard-header.is-collapsed { grid-template-columns: 1fr; grid-template-areas: "stats"; gap: 0; padding: 18px 20px; }
+.dashboard-header.is-collapsed .hero-copy-block, .dashboard-header.is-collapsed .hero-logo-shell { display: none; }
+.dashboard-header.is-collapsed .stats-grid { gap: 10px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.dashboard-header.is-collapsed .stat-card { padding: 12px 14px; border-radius: 18px; }
+.dashboard-header.is-collapsed .stat-label { font-size: 0.82rem; }
+.dashboard-header.is-collapsed .stat-value { font-size: 1rem; }
+.dashboard-header.is-collapsed .stat-helper { display: none; }
+.hero-copy-block { grid-area: copy; display: flex; flex-direction: column; justify-content: center; }
+.dashboard-header h2 { max-width: 760px; font-size: clamp(2rem, 3vw, 3rem); line-height: 1.05; color: #1b3f74; }
+.hero-panel { grid-area: logo; display: flex; align-items: center; justify-content: flex-end; }
+.hero-logo-shell { display: flex; align-items: center; justify-content: flex-end; min-height: 100%; padding: 6px 0 6px 12px; }
+.hero-logo-placeholder {
+  width: 200px; height: 200px; border-radius: 32px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 3rem; font-weight: 800; letter-spacing: -0.04em;
+}
+.stats-grid { grid-area: stats; display: grid; gap: 14px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.stat-card { border-radius: 22px; padding: 18px; background: linear-gradient(180deg, rgba(88,172,233,0.12) 0%, rgba(255,255,255,0.95) 100%); border: 1px solid rgba(88,172,233,0.18); box-shadow: var(--shadow-soft); }
+.stat-card-button { width: 100%; text-align: left; cursor: pointer; font: inherit; appearance: none; transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease; }
+.stat-card-button:hover { transform: translateY(-2px); border-color: rgba(64,104,234,0.26); box-shadow: 0 16px 34px rgba(64,104,234,0.12); }
+.stat-label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.stat-value { display: block; font-size: 1.5rem; font-weight: 800; color: var(--text); letter-spacing: -0.03em; }
+.stat-helper { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+.home-alerts { margin-top: 24px; }
+.home-alerts-card { padding: 24px; }
+.home-alerts-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+.home-alerts-header h3 { margin: 0; }
+.home-alerts-grid { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); }
+.home-alert-item { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,0.8); text-align: left; font: inherit; color: inherit; transition: transform 120ms ease; }
+.home-alert-item:hover { transform: translateY(-1px); }
+.home-alert-countdown { display: grid; gap: 2px; min-width: 64px; text-align: center; padding: 10px; border-radius: 14px; background: var(--accent-soft); }
+.home-alert-countdown strong { font-size: 1.6rem; font-weight: 800; color: var(--accent-strong); }
+.home-alert-countdown span { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+.home-alert-countdown.is-today { background: linear-gradient(135deg, var(--accent-2), var(--accent)); }
+.home-alert-countdown.is-today strong, .home-alert-countdown.is-today span { color: white; }
+.home-alert-copy p { margin: 0 0 4px; }
+.home-alerts-empty { padding: 16px 0; }
+.workspace { margin-top: 24px; }
+.workspace-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 24px 28px; border-bottom: 1px solid var(--line); }
+.workspace-header h3 { font-size: 1.5rem; letter-spacing: -0.03em; }
+.workspace-actions { display: flex; gap: 10px; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+.save-badge { padding: 8px 14px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; color: var(--muted); background: rgba(255,255,255,0.6); border: 1px solid var(--line); }
+.save-badge.dirty { color: #b06d00; background: #fff8e8; border-color: #f5d98a; }
+.save-badge.success { color: #1a7a3e; background: #eafaf0; border-color: #a0e0bc; }
+.tab-bar { display: flex; gap: 8px; padding: 16px 28px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tab-button { padding: 10px 18px; border-radius: 14px; border: 1px solid transparent; background: transparent; color: var(--muted); font-weight: 600; font-size: 0.9rem; transition: all 120ms ease; }
+.tab-button.active { background: var(--accent-soft); color: var(--accent-strong); border-color: rgba(88,172,233,0.2); }
+.tab-button:hover:not(.active) { background: rgba(255,255,255,0.8); color: var(--text); }
+.tab-content { padding: 28px; display: grid; gap: 24px; }
+.section-block { padding: 24px; }
+.section-block + .section-block { margin-top: 0; }
+.section-heading { margin: 0 0 16px; font-size: 1.05rem; }
+.section-copy { margin: 0 0 16px; line-height: 1.7; }
+.form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+.span-4 { grid-column: span 4; }
+.span-5 { grid-column: span 5; }
+.span-6 { grid-column: span 6; }
+.span-7 { grid-column: span 7; }
+.span-8 { grid-column: span 8; }
+.span-9 { grid-column: span 9; }
+.span-12 { grid-column: span 12; }
+.check-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.binary-field { display: grid; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid var(--line); background: rgba(255,255,255,0.6); }
+.binary-field p { margin: 0; font-size: 0.9rem; font-weight: 600; }
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+.check-card { display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.9rem; }
+.check-card input { width: auto; }
+.reference-card { padding: 18px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,0.7); }
+.reference-card p { margin: 0 0 8px; }
+.reference-card p:last-child { margin-bottom: 0; }
+.mdas-grid { display: grid; gap: 16px; margin: 16px 0; }
+.mdas-question { padding: 18px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,0.6); }
+.mdas-question p { margin: 0 0 12px; }
+.score-pill { display: inline-flex; padding: 10px 18px; border-radius: 24px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; font-size: 0.92rem; margin-top: 8px; }
+.session-selector { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
+.session-selector .field { flex: 1; }
+.table-like { display: grid; gap: 12px; margin-top: 16px; }
+.table-row { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; align-items: end; padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: rgba(255,255,255,0.6); }
+.table-row.compact { grid-template-columns: 1fr 2fr 2fr auto; }
+.wilson-reference-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-top: 16px; }
+.wilson-reference-card { border-left: 3px solid var(--accent-2); }
+.trieger-preview { width: 100%; max-width: 260px; border-radius: 14px; margin-top: 12px; border: 1px solid var(--line); }
+.finance-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 16px; }
+.finance-kpi-card { padding: 18px; border-radius: 20px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(88,172,233,0.08) 0%, rgba(255,255,255,0.95) 100%); }
+.finance-kpi-card .stat-value { font-size: 1.2rem; }
+.finance-title { margin: 0 0 16px; font-size: 1.1rem; line-height: 1.4; }
+.card-toolbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.finance-toolbar { align-items: center; }
+.toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.finance-table { display: grid; gap: 12px; margin-top: 16px; }
+.finance-table-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto auto; gap: 10px; align-items: end; padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: rgba(255,255,255,0.6); }
+.finance-investment-row { grid-template-columns: 2fr 1fr 1fr auto auto; }
+.finance-simulation-row { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+.finance-entry-row { display: grid; grid-template-columns: 1fr 1.5fr 1fr 2fr 0.6fr 0.8fr 1fr auto auto; gap: 10px; align-items: end; padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: rgba(255,255,255,0.6); }
+.finance-notes-field { grid-column: span 2; }
+.finance-inline-total { display: grid; gap: 4px; text-align: center; }
+.finance-inline-total span { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+.finance-inline-total strong { font-weight: 700; }
+.finance-balance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+.info-banner { padding: 14px 18px; border-radius: 16px; background: var(--warning-bg); border: 1px solid var(--warning-line); color: var(--warning-text); font-size: 0.92rem; margin-top: 16px; }
+.calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.calendar-empty { border-radius: 16px; min-height: 80px; }
+.calendar-day-card { border-radius: 16px; padding: 12px; border: 1px solid var(--line); background: rgba(255,255,255,0.7); text-align: left; font: inherit; color: inherit; cursor: pointer; min-height: 80px; display: grid; gap: 4px; transition: transform 120ms ease; }
+.calendar-day-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-soft); }
+.calendar-day-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+.calendar-day-card.today { border-color: var(--accent-2); }
+.calendar-day-card.has-entries { background: linear-gradient(135deg, rgba(88,172,233,0.15), rgba(255,255,255,0.9)); }
+.calendar-day-card strong { font-size: 1.1rem; color: var(--text); }
+.calendar-day-card span { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.calendar-day-card small { font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calendar-day-card.schedule-tone-sedation { border-color: rgba(64,104,234,0.4); background: linear-gradient(135deg, rgba(64,104,234,0.1), rgba(255,255,255,0.95)); }
+.calendar-day-card.schedule-tone-assessment { border-color: rgba(88,172,233,0.4); background: linear-gradient(135deg, rgba(88,172,233,0.1), rgba(255,255,255,0.95)); }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.schedule-list { display: grid; gap: 12px; }
+.schedule-item-card { padding: 16px 20px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,0.7); display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.schedule-item-button { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; transition: transform 120ms ease; }
+.schedule-item-button:hover { transform: translateY(-1px); }
+.schedule-item-button.active { border-color: var(--accent); background: var(--accent-soft); }
+.schedule-item-button.schedule-tone-sedation { border-color: rgba(64,104,234,0.3); }
+.schedule-item-button.schedule-tone-assessment { border-color: rgba(88,172,233,0.3); }
+.schedule-item-card .toolbar-actions { flex-shrink: 0; }
+.agenda-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; }
+.appointment-editor-card { padding: 20px; }
+.appointment-editor-toolbar { margin-bottom: 16px; }
+.appointment-editor-grid { margin-top: 0; }
+.schedule-month-picker { min-width: 160px; }
+.overview-chip { display: inline-flex; padding: 5px 12px; border-radius: 24px; background: var(--accent-soft); color: var(--accent-strong); font-size: 0.78rem; font-weight: 700; flex-shrink: 0; }
+.overview-section-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
+.overview-stack { display: grid; gap: 14px; }
+.overview-card { border-radius: 24px; padding: 18px 20px; border: 1px solid rgba(173,199,242,0.58); background: linear-gradient(180deg, rgba(88,172,233,0.08) 0%, rgba(255,255,255,0.96) 100%); box-shadow: var(--shadow-soft); }
+.overview-card-button { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; appearance: none; transition: transform 160ms ease, box-shadow 160ms ease; }
+.overview-card-button:hover { transform: translateY(-2px); box-shadow: 0 18px 38px rgba(41,78,145,0.12); }
+.overview-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+.overview-copy { margin: 0 0 6px; color: var(--muted); font-size: 0.9rem; }
+.overview-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+.gallery-toolbar { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
+.gallery-toolbar .field { flex: 1; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.gallery-card { border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,0.7); overflow: hidden; padding-bottom: 14px; }
+.gallery-card img { width: 100%; height: 160px; object-fit: cover; display: block; border-radius: 16px 16px 0 0; }
+.gallery-card h4 { margin: 12px 14px 4px; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gallery-card p { margin: 0 14px 4px; font-size: 0.82rem; }
+.gallery-card .danger-button { margin: 8px 14px 0; width: calc(100% - 28px); }
+.gallery-card-button { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.inner-tab-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.document-upload-card { background: rgba(88,172,233,0.06); border-color: rgba(88,172,233,0.2); }
+.pdf-card { border-color: rgba(88,172,233,0.2); }
+.pdf-preview { width: 100%; height: 200px; border: 1px solid var(--line); border-radius: 12px; margin: 12px 0; }
+.pdf-action { margin-top: 8px; font-size: 0.88rem; }
+.backup-stat-value { font-size: 1rem !important; }
+.backup-suggestions-grid { margin-top: 16px; }
+.email-test-toolbar { align-items: flex-start; }
+.empty-panel { margin-top: 24px; padding: 48px 40px; }
+.empty-panel h3 { font-size: 1.5rem; margin-bottom: 12px; }
+/* Sidebar data banner */
+.data-banner { margin-top: 16px; padding: 12px 16px; border-radius: 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(196,220,255,0.2); }
+.data-banner p { margin: 0; font-size: 0.82rem; color: rgba(227,238,255,0.8); line-height: 1.5; }
+.data-banner strong { color: #8fd2ff; }
+/* Storage indicator */
+.storage-indicator { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.storage-bar { height: 6px; border-radius: 6px; background: rgba(255,255,255,0.15); overflow: hidden; }
+.storage-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition: width 400ms ease; }
+  </style>
+</head>
+<body>
+
+<section id="authGate" class="auth-gate hidden">
+  <div class="auth-card">
+    <div class="auth-branding">
+      <div class="auth-logo">
+        <div class="auth-logo-placeholder">SF</div>
+      </div>
+      <div>
+        <p class="eyebrow">Acesso protegido</p>
+        <h2>Entrar no SedaFlow</h2>
+        <p class="auth-copy">Seus dados clínicos ficam protegidos por login antes de carregar pacientes, agenda e documentos.</p>
+        <p class="auth-copy" style="margin-top:8px;font-size:0.85rem;">📦 Versão offline — dados salvos no seu navegador</p>
+      </div>
+    </div>
+    <form id="loginForm" class="auth-form">
+      <label class="field">
+        <span>Login</span>
+        <input id="loginUsernameInput" type="text" autocomplete="username" />
+      </label>
+      <label class="field">
+        <span>Senha</span>
+        <input id="loginPasswordInput" type="password" autocomplete="current-password" />
+      </label>
+      <p id="loginError" class="auth-error hidden"></p>
+      <button id="loginButton" class="primary-button" type="submit">Entrar</button>
+    </form>
+  </div>
+</section>
+
+<div id="appFrame" class="app-frame hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <button id="homeLogoButton" class="brand-logo-button" type="button" aria-label="Voltar para a página inicial">
+        <div class="brand-logo-placeholder">SedaFlow</div>
+      </button>
+      <p class="eyebrow">Sedação consciente</p>
+      <h1>SedaFlow</h1>
+      <p class="brand-copy">Pacientes, sessões, imagens e financeiro no mesmo fluxo de atendimento.</p>
+      <p id="authSessionInfo" class="auth-session-info hidden"></p>
+      <div class="data-banner">
+        <p><strong>Versão offline</strong></p>
+        <p>Dados salvos no navegador. Use "Exportar JSON" para backup.</p>
+        <div class="storage-indicator">
+          <span style="font-size:0.78rem;color:rgba(227,238,255,0.7)" id="storageLabel">Calculando...</span>
+          <div class="storage-bar"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-actions">
+      <button id="openPatientsButton" class="primary-button" type="button">Pacientes</button>
+      <button id="openAgendaButton" class="secondary-button" type="button">Agenda</button>
+      <button id="createPatientButton" class="primary-button" type="button">Novo paciente</button>
+      <button id="openFinanceButton" class="secondary-button" type="button">Financeiro geral</button>
+      <button id="openSystemButton" class="sync-button" type="button">Backup / Dados</button>
+      <button id="openEmailButton" class="secondary-button" type="button">E-mail</button>
+      <button id="logoutButton" class="ghost-button" type="button">Sair</button>
+      <label class="search-field">
+        <span>Buscar</span>
+        <input id="patientSearchInput" type="search" placeholder="Nome, telefone, e-mail..." />
+      </label>
+    </div>
+    <div id="patientList" class="patient-list"></div>
+  </aside>
+
+  <main class="main-content">
+    <header id="dashboardHeader" class="dashboard-header">
+      <div class="hero-copy-block">
+        <p class="eyebrow">SedaFlow</p>
+        <h2>A transformação do seu sorriso começa aqui.</h2>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-logo-shell">
+          <div class="hero-logo-placeholder">SF</div>
+        </div>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </header>
+
+    <section id="homeAlerts" class="home-alerts hidden"></section>
+
+    <section id="emptyState" class="empty-state hidden">
+      <div class="empty-panel">
+        <p class="eyebrow">Primeiro passo</p>
+        <h3>Crie ou selecione um paciente para abrir o prontuário.</h3>
+        <p>O app salva localmente no navegador (localStorage) e já traz as seções principais do seu processo de sedação.</p>
+      </div>
+    </section>
+
+    <section id="patientWorkspace" class="workspace hidden">
+      <div class="workspace-header">
+        <div>
+          <p id="workspaceEyebrow" class="eyebrow">Prontuário ativo</p>
+          <h3 id="patientTitle">Paciente</h3>
+          <p id="patientSubtitle" class="workspace-copy"></p>
+        </div>
+        <div class="workspace-actions">
+          <span id="saveBadge" class="save-badge">Sem alterações pendentes</span>
+          <button id="savePatientButton" class="secondary-button" type="button">Salvar</button>
+          <button id="exportPatientPdfButton" class="secondary-button" type="button">Imprimir ficha</button>
+          <button id="deletePatientButton" class="danger-button" type="button">Excluir</button>
+        </div>
+      </div>
+      <nav id="tabBar" class="tab-bar"></nav>
+      <section id="tabContent" class="tab-content"></section>
+    </section>
+  </main>
+</div>
+
+<template id="statCardTemplate">
+  <button class="stat-card stat-card-button" type="button">
+    <span class="stat-label"></span>
+    <strong class="stat-value"></strong>
+    <small class="stat-helper"></small>
+  </button>
+</template>
+
+<script>
+// ─── CONFIGURAÇÃO DE AUTENTICAÇÃO LOCAL ───────────────────────────────────────
+const AUTH_USERNAME = "matheusfilgueiras";
+const AUTH_PASSWORD = "Iron98.maxed";
+const STORAGE_KEY = "sedaflow_db";
+const SESSION_KEY = "sedaflow_session";
+
+// ─── CONSTANTES CLÍNICAS ──────────────────────────────────────────────────────
+const TABS = [
+  { id: "cadastro", label: "Cadastro" },
+  { id: "consultas", label: "Consultas" },
+  { id: "anamnese", label: "Anamnese" },
+  { id: "documentos", label: "Escalas e Documentos" },
+  { id: "sessao", label: "Sessão de Sedação" },
+  { id: "galeria", label: "Galeria" }
+];
+
+const MARITAL_STATUS_OPTIONS = ["Solteiro(a)", "Casado(a)", "Separado(a)", "Divorciado(a)", "Viúvo(a)"];
+const RACE_OPTIONS = ["Branca", "Parda", "Preta", "Indígena", "Amarela"];
+const NATIONALITY_OPTIONS = ["Brasil", "Outra"];
+const EDUCATION_OPTIONS = ["Ensino Fundamental Incompleto","Ensino Fundamental Completo","Ensino Médio Incompleto","Ensino Médio Completo","Ensino Superior Incompleto","Ensino Superior Completo"];
+const UF_OPTIONS = [
+  {value:"AC",label:"Acre (AC)"},{value:"AL",label:"Alagoas (AL)"},{value:"AP",label:"Amapá (AP)"},
+  {value:"AM",label:"Amazonas (AM)"},{value:"BA",label:"Bahia (BA)"},{value:"CE",label:"Ceará (CE)"},
+  {value:"DF",label:"Distrito Federal (DF)"},{value:"ES",label:"Espírito Santo (ES)"},{value:"GO",label:"Goiás (GO)"},
+  {value:"MA",label:"Maranhão (MA)"},{value:"MT",label:"Mato Grosso (MT)"},{value:"MS",label:"Mato Grosso do Sul (MS)"},
+  {value:"MG",label:"Minas Gerais (MG)"},{value:"PA",label:"Pará (PA)"},{value:"PB",label:"Paraíba (PB)"},
+  {value:"PR",label:"Paraná (PR)"},{value:"PE",label:"Pernambuco (PE)"},{value:"PI",label:"Piauí (PI)"},
+  {value:"RJ",label:"Rio de Janeiro (RJ)"},{value:"RN",label:"Rio Grande do Norte (RN)"},{value:"RS",label:"Rio Grande do Sul (RS)"},
+  {value:"RO",label:"Rondônia (RO)"},{value:"RR",label:"Roraima (RR)"},{value:"SC",label:"Santa Catarina (SC)"},
+  {value:"SP",label:"São Paulo (SP)"},{value:"SE",label:"Sergipe (SE)"},{value:"TO",label:"Tocantins (TO)"}
+];
+const ANAMNESE_SECTIONS = [
+  { id: "odontologica", label: "História Odontológica" },
+  { id: "medica", label: "História Médica" },
+  { id: "habitos", label: "Hábitos e Estilo de Vida" }
+];
+const MDAS_QUESTIONS = [
+  "Se você tivesse que ir ao dentista amanhã, como se sentiria?",
+  "Se você estivesse na sala de espera, aguardando sua vez, como se sentiria?",
+  "Se você estivesse prestes a ter um dente brocado (obturação), como se sentiria?",
+  "Se você estivesse prestes a ter seus dentes limpos e polidos (profilaxia), como se sentiria?",
+  "Se você estivesse prestes a receber uma injeção de anestesia local, como se sentiria?"
+];
+const MDAS_OPTIONS = [
+  {value:1,label:"1 - Relaxado(a)"},{value:2,label:"2 - Pouco ansioso(a)"},
+  {value:3,label:"3 - Ansioso(a)"},{value:4,label:"4 - Muito ansioso(a)"},
+  {value:5,label:"5 - Extremamente ansioso(a)"}
+];
+const SEDATION_PROFESSIONAL = "Dr. Matheus Filgueiras";
+const ATTENDING_PROFESSIONAL_OPTIONS = [
+  "Dra. Chane Tardem","Dr. Hugo Barbosa","Dr. Marcos Barceleiro",
+  "Dra. Maria Luiza Costa","Dra. Raquel Carmo","Dr. Roney Correa"
+];
+const WILSON_REFERENCE = {
+  1:"Desperto e alerta. Estado pré-sedação ou ansiedade não controlada.",
+  2:"Sonolento e relaxado. Nível-alvo para N2O/O2 com ansiólise adequada.",
+  3:"Olhos fechados, mas responsivo. Sedação leve aceitável com vigilância maior.",
+  4:"Pouco responsivo. Sedação excessiva para N2O: interromper e ofertar O2 100%.",
+  5:"Sem resposta. Emergência e protocolo de suporte avançado."
+};
+const SESSION_TYPES = [
+  {id:"short",label:"Sessão curta - até 1h",pricingKey:"shortSession",quantityKey:"shortQty",costMultiplier:1},
+  {id:"medium",label:"Sessão média - 1h a 2h",pricingKey:"mediumSession",quantityKey:"mediumQty",costMultiplier:2},
+  {id:"long",label:"Sessão longa - 2h a 3h",pricingKey:"longSession",quantityKey:"longQty",costMultiplier:3},
+  {id:"block",label:"Turno fechado - tarde",pricingKey:"afternoonBlock",quantityKey:"blockQty",costMultiplier:5}
+];
+const BILLING_MODES = [
+  {title:"Turno fechado",when:"Cirurgias extensas, reabilitação ampla e protocolos longos.",charge:"Inclui até 5,5h com previsibilidade de agenda.",tolerance:"Excedente combinar a parte.",note:"Bom para dias inteiros de cirurgia e organização de agenda."},
+  {title:"Hora inicial + hora adicional",when:"Implantes unitários, sisos e procedimentos com duração previsível.",charge:"Cobra um valor base e acrescenta por hora extra.",tolerance:"Pode usar 30 min de tolerância.",note:"Protege seu honorário quando o procedimento atrasa."},
+  {title:"Pacote por procedimento",when:"Quando o dentista já conhece bem o tempo do caso.",charge:"Combina previamente por procedimento.",tolerance:"Após a tolerância, acrescente por meia hora ou por hora.",note:"Boa opção para fidelizar dentistas recorrentes."},
+  {title:"Valor único por sessão",when:"Procedimentos curtos e padronizados.",charge:"Valor simples, fechado, fácil de administrar.",tolerance:"Ideal com limite de tempo claro.",note:"Funciona bem para uma rotina mais enxuta."}
+];
+const SYSTEM_SECTIONS = [
+  {title:"Sistema cardiovascular",path:"systems.cardiovascular",fields:[["heartDisease","Cardiopatia diagnosticada"],["hypertension","Hipertensão arterial"],["hypotension","Hipotensão arterial"],["arrhythmia","Arritmia cardíaca"],["heartFailure","Insuficiência cardíaca"],["coronaryDisease","Doença coronariana ou angina"],["previousInfarction","Infarto prévio"],["pacemaker","Marcapasso ou desfibrilador"],["thrombosis","TVP ou TEP prévio"]]},
+  {title:"Sistema respiratório",path:"systems.respiratory",fields:[["asthma","Asma"],["copd","DPOC ou bronquite crônica"],["recentRespInfection","Infecção respiratória recente"],["nasalObstruction","Obstrução nasal importante"],["pneumothorax","Pneumotórax atual ou prévio"],["pulmonaryBullae","Bolha pulmonar"],["fibrosis","Fibrose ou hipertensão pulmonar"],["sleepApnea","Apneia obstrutiva do sono"],["cpap","Uso de CPAP ou BiPAP"],["mouthBreather","Respirador bucal habitual"]]},
+  {title:"Sistema nervoso e saúde mental",path:"systems.neuroMental",fields:[["seizures","Epilepsia ou convulsões"],["stroke","AVC ou AIT prévio"],["parkinson","Parkinson ou desordem do movimento"],["neuropathy","Esclerose múltipla ou neuropatia"],["anxietyDisorder","Transtorno de ansiedade"],["depression","Depressão em tratamento"],["bipolarPsychosis","Bipolaridade, esquizofrenia ou psicose"],["autism","TEA"],["adhd","TDAH"],["claustrophobia","Claustrofobia"],["substanceDependence","Histórico de dependência química"]]},
+  {title:"Gastrointestinal e metabolismo",path:"systems.gastrointestinal",fields:[["crohn","Crohn, retocolite ou DII"],["ibs","Síndrome do intestino irritável"],["obstruction","Obstrução intestinal"],["recentGiSurgery","Cirurgia gastrointestinal recente"],["celiac","Doença celíaca"],["gastrectomy","Gastrectomia prévia"],["nauseaVomiting","Náuseas ou vômitos frequentes"]]},
+  {title:"Vitamina B12 e folato",path:"systems.b12Folate",fields:[["b12Deficiency","Deficiência de vitamina B12"],["folateDeficiency","Deficiência de ácido fólico"],["perniciousAnemia","Anemia perniciosa"],["mthfr","Mutação MTHFR"],["vegan","Dieta vegana"],["metformin","Uso de metformina"],["ppi","Uso de inibidor de bomba de prótons"]]},
+  {title:"Ouvido médio, olhos e espaços fechados",path:"systems.closedSpaces",fields:[["earSurgery","Cirurgia recente de ouvido médio"],["tympanoplasty","Timpanoplastia ou miringoplastia"],["otitis","Otite média aguda"],["ocularGas","Cirurgia ocular com bolha de gás"],["glaucoma","Glaucoma não controlado"],["pneumocephalus","Pneumocefalo ou cirurgia intracraniana recente"]]},
+  {title:"Endócrino, hematológico e infeccioso",path:"systems.otherMedical",fields:[["diabetes","Diabetes mellitus"],["thyroid","Hipo ou hipertireoidismo"],["adrenal","Insuficiência adrenal ou corticoide crônico"],["obesity","Obesidade (IMC >= 30)"],["anemia","Anemia"],["sickleCell","Doença falciforme"],["thalassemia","Talassemia"],["coagulopathy","Coagulopatia ou trombocitopenia"],["chemotherapy","Quimio ou radioterapia em curso"],["bleomycin","Histórico de bleomicina"],["pregnancy","Gestação ou suspeita"],["infectiousDisease","HIV, hepatites, TB ativa ou afins"],["autoimmune","Doença autoimune"],["immunocompromised","Imunocomprometido"]]}
+];
+const ACUTE_CONDITIONS = ["Rinite alérgica em crise","Sinusite aguda","Rinossinusite","Gripe ou resfriado","Faringite ou amigdalite","Laringite","Broncoespasmo ou crise asmática","Obstrução nasal grave"];
+const ORAL_HABITS = ["Bruxismo do sono","Apertamento em vigília","Roer unhas","Morder objetos","Mascar chiclete em excesso","Sucção digital"];
+const FINANCE_ENTRY_CATEGORIES = ["Turno fechado","Hora inicial + hora adicional","Pacote por procedimento","Valor único por sessão"];
+const FINANCE_ENTRY_STATUS = ["Lançado","Pago","Recebido","Parcial","Cancelado"];
+const SCHEDULE_APPOINTMENT_TYPES = ["Avaliação pré-sedação","Sedação agendada","Retorno","Consulta clínica","Contato ou encaixe"];
+const SCHEDULE_STATUS_OPTIONS = ["Agendada","Confirmada","Concluída","Cancelada","Remarcada"];
+
+const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+// ─── UTILITÁRIOS ──────────────────────────────────────────────────────────────
+function createId(prefix) { return `${prefix}_${crypto.randomUUID()}`; }
+function asNumber(v) { if (v===null||v===undefined||v==="") return 0; const n=typeof v==="string"?v.replace(",","."):v; const p=Number(n); return Number.isFinite(p)?p:0; }
+function asBoolean(v) { return v===true||v==="true"; }
+function formatMoney(v) { return moneyFormatter.format(asNumber(v)); }
+function formatDate(v) { if (!v) return "Sem data"; const d=new Date(v); if(isNaN(d.getTime())) return v; return d.toLocaleDateString("pt-BR"); }
+function formatTime(v) { return v||"--:--"; }
+function formatMonthLabel(m) { if(!m) return ""; const [y,mo]=m.split("-").map(Number); const d=new Date(y,(mo||1)-1,1); if(isNaN(d.getTime())) return m; return d.toLocaleDateString("pt-BR",{month:"long",year:"numeric"}); }
+function shiftMonthValue(m,delta) { const [y,mo]=(m||new Date().toISOString().slice(0,7)).split("-").map(Number); const d=new Date(y,(mo||1)-1+delta,1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+function escapeHtml(v) { return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
+function getValueAtPath(o,p) { return p.split(".").reduce((a,k)=>a==null?undefined:a[k],o); }
+function setValueAtPath(o,p,v) { const keys=p.split("."); let c=o; for(let i=0;i<keys.length-1;i++){const k=keys[i]; if(typeof c[k]!=="object"||c[k]===null) c[k]={}; c=c[k];} c[keys[keys.length-1]]=v; }
+function calculateAgeFromBirthDate(bd) { if(!bd) return ""; const d=new Date(`${bd}T00:00:00`); if(isNaN(d.getTime())) return ""; const t=new Date(); let a=t.getFullYear()-d.getFullYear(); const md=t.getMonth()-d.getMonth(),dd=t.getDate()-d.getDate(); if(md<0||(md===0&&dd<0)) a--; return a>=0?String(a):""; }
+function getMdasScore(p) { return (p.anxiety?.mdasAnswers||[]).reduce((s,x)=>s+Number(x||0),0); }
+function getMdasClassification(s) { if(s>=19) return "Fobia odontológica"; if(s>=15) return "Ansiedade alta"; if(s>=10) return "Ansiedade moderada"; if(s>=5) return "Ansiedade baixa ou nula"; return "Não preenchido"; }
+
+// ─── DEFAULTS ─────────────────────────────────────────────────────────────────
+function defaultCostItem(name="",unitCost="",quantity=1) { return {id:createId("cost"),name,unitCost,quantity}; }
+function defaultFinanceEntry() { return {id:createId("entry"),date:"",patientId:"",movementType:"Receita",category:"Turno fechado",description:"",quantity:1,unitValue:"",status:"Lançado",notes:""}; }
+function defaultScheduleEntry(date="",patientId="") { return {id:createId("appointment"),date,startTime:"",endTime:"",patientId,appointmentType:"Sedação agendada",status:"Agendada",location:"",notes:""}; }
+function defaultInvestmentItem(name="",value="",usefulLifeYears="") { return {id:createId("investment"),name,value,usefulLifeYears}; }
+function defaultSessionFinance() { return {sessionType:"medium",billingMode:"Valor único por sessão",agreedFee:"",clinicCharge:"",amountReceived:"",paymentStatus:"Pendente",paymentDate:"",extraHours:"",variableCostOverride:"",notes:""}; }
+function defaultFinanceSettings() {
+  return {
+    pricing:{hourlyRate:350,shortSession:450,mediumSession:700,longSession:950,additionalHour:280,afternoonBlock:1800,packageReference:520,halfHourToleranceMinutes:30,extraHalfHourValue:150},
+    costItems:[defaultCostItem("Óxido nitroso - consumo médio por sessão",60,1),defaultCostItem("Oxigênio medicinal - consumo médio por sessão",15,1),defaultCostItem("Máscara nasal descartável",12,1),defaultCostItem("Circuito ou traqueia descartável",8,1),defaultCostItem("Benzodiazepínico oral",6,1),defaultCostItem("Materiais de monitorização",4,1),defaultCostItem("Luvas, EPI e descartáveis",5,1)],
+    investments:[defaultInvestmentItem("Equipamento de óxido nitroso",20000,10),defaultInvestmentItem("Kit de emergência",1500,5),defaultInvestmentItem("Oxímetro de pulso portátil",600,5),defaultInvestmentItem("Descartáveis iniciais",400,1)],
+    monthlySimulation:{shortQty:1,mediumQty:1,longQty:1,blockQty:1},
+    recoveryTargetMonths:24,financeEntries:[],scheduleEntries:[],
+    email:{senderName:"Dr. Matheus Filgueiras",senderEmail:"",replyTo:"",smtpHost:"",smtpPort:587,smtpSecure:false,smtpUser:"",smtpPassword:""}
+  };
+}
+
+function emptyPatient() {
+  return {
+    profile:{fullName:"",birthDate:"",age:"",sex:"",maritalStatus:"",race:"",nationality:"",otherNationality:"",address:"",district:"",city:"",state:"",zipCode:"",phone:"",altPhone:"",workPhone:"",email:"",profession:"",education:"",fatherName:"",motherName:"",legalGuardian:"",guardianCpf:"",guardianPhone:""},
+    treatment:{complaint:"",desiredObjective:"",lastDentalVisitDate:"",lastDentalVisitReason:""},
+    clinicalAssessment:{asaClass:"",fastingStatus:"",nasalBreathing:"",airwayNotes:"",bloodPressureBaseline:"",heartRateBaseline:"",respiratoryRateBaseline:"",spo2Baseline:"",professionalNotes:""},
+    dentalHistory:{localAnesthesia:"",adverseReaction:"",previousNitrous:"",nitrousExperience:"",previousSedation:"",previousSedationDetails:"",bruxism:"",bruxismPeriod:"",bruxismNotes:""},
+    medicalHistory:{currentFollowUp:"",followUpDetails:"",medications:"",supplements:"",recentDrugUse:"",recentDrugUseDetails:"",allergies:"",allergiesDetails:"",surgeries:"",surgeriesDetails:"",bloodTransfusion:"",bloodTransfusionDetails:"",seriousDiseases:"",seriousDiseasesDetails:""},
+    systems:{cardiovascular:{},respiratory:{},neuroMental:{},gastrointestinal:{},b12Folate:{},closedSpaces:{},otherMedical:{},acuteConditions:[]},
+    habits:{smoking:"",smokingAmount:"",smokingHistory:"",alcohol:"",alcoholFrequency:"",alcoholAmount:"",drugs:"",recreationalNitrous:"",recreationalNitrousFrequency:"",physicalActivity:"",sleepIssues:"",stressLevel:"",oralHabits:[],temporalHeadache:"",faceFatigue:"",observedBehavior:""},
+    anxiety:{evaScore:"",mdasAnswers:[0,0,0,0,0]},
+    documents:{preSedationOrientationDate:"",preSedationOrientationNotes:"",consentDate:"",consentNotes:"",signedConsentFileName:"",signedConsentDataUrl:"",extraDocsNotes:""},
+    sessions:[],gallery:[]
+  };
+}
+
+function emptySession() {
+  return {
+    id:createId("session"),date:"",procedure:"",clinician:SEDATION_PROFESSIONAL,attendingProfessional:"",
+    benzodiazepineDose:"",spo2Baseline:"",preSedationPressure:"",initialNitrous:"",totalFlow:"",averageNitrous:"",
+    painScale:"",totalSedationTime:"",oxygenationMinutes:"",dischargeSpo2:"",dischargeWilson:"",releasedBy:"",notes:"",
+    monitoring:[],complications:[],finance:defaultSessionFinance(),
+    trieger:{date:"",initialTime:"",initialNotes:"",initialImageDataUrl:"",finalTime:"",finalNotes:"",finalImageDataUrl:""}
+  };
+}
+
+function normalizeSession(s={}) {
+  const base=emptySession();
+  return {...base,...s,clinician:SEDATION_PROFESSIONAL,
+    monitoring:Array.isArray(s.monitoring)?s.monitoring:[],
+    complications:Array.isArray(s.complications)?s.complications:[],
+    finance:{...defaultSessionFinance(),...(s.finance||{})},
+    trieger:{...base.trieger,...(s.trieger||{})}
+  };
+}
+
+function normalizePatient(p={}) {
+  const base=emptyPatient();
+  const np={...base.profile,...(p.profile||{})};
+  np.age=calculateAgeFromBirthDate(np.birthDate);
+  if(np.nationality!=="Outra") np.otherNationality="";
+  return {
+    ...base,...p,profile:np,
+    treatment:{...base.treatment,...(p.treatment||{})},
+    clinicalAssessment:{...base.clinicalAssessment,...(p.clinicalAssessment||{})},
+    dentalHistory:{...base.dentalHistory,...(p.dentalHistory||{})},
+    medicalHistory:{...base.medicalHistory,...(p.medicalHistory||{})},
+    systems:{...base.systems,...(p.systems||{}),acuteConditions:Array.isArray(p.systems?.acuteConditions)?p.systems.acuteConditions:[]},
+    habits:{...base.habits,...(p.habits||{}),oralHabits:Array.isArray(p.habits?.oralHabits)?p.habits.oralHabits:[]},
+    anxiety:{...base.anxiety,...(p.anxiety||{})},
+    documents:{...base.documents,...(p.documents||{})},
+    sessions:Array.isArray(p.sessions)?p.sessions.map(normalizeSession):[],
+    gallery:Array.isArray(p.gallery)?p.gallery:[]
+  };
+}
+
+function normalizeSettings(s={}) {
+  const base=defaultFinanceSettings();
+  return {
+    ...base,...s,
+    pricing:{...base.pricing,...(s.pricing||{})},
+    monthlySimulation:{...base.monthlySimulation,...(s.monthlySimulation||{})},
+    email:{...base.email,...(s.email||{})},
+    costItems:Array.isArray(s.costItems)?s.costItems.map(i=>({...defaultCostItem(),...i,id:i.id||createId("cost")})):base.costItems,
+    investments:Array.isArray(s.investments)?s.investments.map(i=>({...defaultInvestmentItem(),...i,id:i.id||createId("investment")})):base.investments,
+    scheduleEntries:Array.isArray(s.scheduleEntries)?s.scheduleEntries.map(i=>({...defaultScheduleEntry(),...i,id:i.id||createId("appointment")})):base.scheduleEntries,
+    financeEntries:Array.isArray(s.financeEntries)?s.financeEntries.map(i=>({...defaultFinanceEntry(),...i,id:i.id||createId("entry")})):base.financeEntries
+  };
+}
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+function readDb() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { patients: [], settings: defaultFinanceSettings() };
+    return JSON.parse(raw);
+  } catch { return { patients: [], settings: defaultFinanceSettings() }; }
+}
+
+function writeDb(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  updateStorageIndicator();
+}
+
+function updateStorageIndicator() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || "";
+    const bytes = new Blob([raw]).size;
+    const kb = (bytes / 1024).toFixed(0);
+    const mb = (bytes / 1024 / 1024).toFixed(2);
+    const pct = Math.min(100, (bytes / (5 * 1024 * 1024)) * 100);
+    const lbl = document.getElementById("storageLabel");
+    const fill = document.getElementById("storageFill");
+    if (lbl) lbl.textContent = `${kb} KB usados (~5 MB disponível)`;
+    if (fill) fill.style.width = `${pct}%`;
+  } catch {}
+}
+
+function exportJson() {
+  const data = readDb();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sedaflow-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJson() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.patients || !Array.isArray(data.patients)) {
+        alert("Arquivo inválido. Selecione um backup do SedaFlow.");
+        return;
+      }
+      const confirmed = confirm(`Restaurar backup com ${data.patients.length} paciente(s)?\n\nATENÇÃO: os dados atuais serão substituídos.`);
+      if (!confirmed) return;
+      writeDb(data);
+      await loadPatients();
+      alert("Backup restaurado com sucesso!");
+    } catch (e) {
+      alert("Erro ao importar: " + e.message);
+    }
+  };
+  input.click();
+}
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+const state = {
+  patients: [], settings: defaultFinanceSettings(),
+  auth: { authenticated: false, username: "" },
+  selectedPatientId: null, selectedSessionId: null, selectedScheduleId: null,
+  scheduleMonth: new Date().toISOString().slice(0, 7),
+  dashboardCollapsed: false, activeView: "patient", activeTab: "cadastro",
+  anamneseSection: "odontologica", search: "", dirty: false, saving: false,
+  saveMessage: "Sem alterações pendentes"
+};
+
+const els = {
+  appFrame: document.getElementById("appFrame"),
+  authGate: document.getElementById("authGate"),
+  authSessionInfo: document.getElementById("authSessionInfo"),
+  createPatientButton: document.getElementById("createPatientButton"),
+  dashboardHeader: document.getElementById("dashboardHeader"),
+  deletePatientButton: document.getElementById("deletePatientButton"),
+  emptyState: document.getElementById("emptyState"),
+  homeAlerts: document.getElementById("homeAlerts"),
+  homeLogoButton: document.getElementById("homeLogoButton"),
+  loginButton: document.getElementById("loginButton"),
+  loginError: document.getElementById("loginError"),
+  loginForm: document.getElementById("loginForm"),
+  loginPasswordInput: document.getElementById("loginPasswordInput"),
+  loginUsernameInput: document.getElementById("loginUsernameInput"),
+  logoutButton: document.getElementById("logoutButton"),
+  openAgendaButton: document.getElementById("openAgendaButton"),
+  openEmailButton: document.getElementById("openEmailButton"),
+  openFinanceButton: document.getElementById("openFinanceButton"),
+  openPatientsButton: document.getElementById("openPatientsButton"),
+  openSystemButton: document.getElementById("openSystemButton"),
+  patientList: document.getElementById("patientList"),
+  patientSearchInput: document.getElementById("patientSearchInput"),
+  exportPatientPdfButton: document.getElementById("exportPatientPdfButton"),
+  workspaceEyebrow: document.getElementById("workspaceEyebrow"),
+  patientSubtitle: document.getElementById("patientSubtitle"),
+  patientTitle: document.getElementById("patientTitle"),
+  patientWorkspace: document.getElementById("patientWorkspace"),
+  saveBadge: document.getElementById("saveBadge"),
+  savePatientButton: document.getElementById("savePatientButton"),
+  statsGrid: document.getElementById("statsGrid"),
+  tabBar: document.getElementById("tabBar"),
+  tabContent: document.getElementById("tabContent")
+};
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function checkSession() {
+  try {
+    const s = sessionStorage.getItem(SESSION_KEY);
+    return s === AUTH_USERNAME;
+  } catch { return false; }
+}
+
+function setSession(username) {
+  sessionStorage.setItem(SESSION_KEY, username);
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+function setLoginError(msg="") {
+  if (!els.loginError) return;
+  els.loginError.textContent = msg;
+  els.loginError.classList.toggle("hidden", !msg);
+}
+
+function showAuthGate(msg="") {
+  state.auth.authenticated = false;
+  if (els.appFrame) els.appFrame.classList.add("hidden");
+  if (els.authGate) els.authGate.classList.remove("hidden");
+  setLoginError(msg);
+  if (els.loginPasswordInput) els.loginPasswordInput.value = "";
+}
+
+function showAppFrame() {
+  if (els.authGate) els.authGate.classList.add("hidden");
+  if (els.appFrame) els.appFrame.classList.remove("hidden");
+  setLoginError("");
+  if (els.authSessionInfo) {
+    els.authSessionInfo.textContent = `Acesso autenticado como ${state.auth.username}`;
+    els.authSessionInfo.classList.remove("hidden");
+  }
+}
+
+function loginToApp() {
+  const username = els.loginUsernameInput?.value?.trim() || "";
+  const password = els.loginPasswordInput?.value || "";
+  if (!username || !password) { setLoginError("Preencha o login e a senha para continuar."); return; }
+  if (username !== AUTH_USERNAME || password !== AUTH_PASSWORD) {
+    setLoginError("Login ou senha inválidos."); return;
+  }
+  setSession(username);
+  state.auth = { authenticated: true, username };
+  showAppFrame();
+  loadPatients();
+  updateStorageIndicator();
+}
+
+function logoutFromApp() {
+  clearSession();
+  state.auth = { authenticated: false, username: "" };
+  state.patients = []; state.settings = defaultFinanceSettings();
+  state.selectedPatientId = null; state.selectedSessionId = null;
+  state.dashboardCollapsed = false;
+  showAuthGate("Você saiu com segurança. Entre novamente para acessar os dados.");
+}
+
+// ─── NAVEGAÇÃO ────────────────────────────────────────────────────────────────
+function getSelectedPatient() { return state.patients.find(p=>p.id===state.selectedPatientId)||null; }
+function getSelectedSession(patient=getSelectedPatient()) { if(!patient) return null; return patient.sessions.find(s=>s.id===state.selectedSessionId)||null; }
+function getSelectedScheduleEntry() { return (state.settings.scheduleEntries||[]).find(e=>e.id===state.selectedScheduleId)||null; }
+function getScheduleEntries(settings=state.settings) { return [...(settings.scheduleEntries||[])].sort((a,b)=>{const ak=`${a.date||"9999-12-31"} ${a.startTime||"99:99"}`,bk=`${b.date||"9999-12-31"} ${b.startTime||"99:99"}`; return ak.localeCompare(bk);}); }
+function getScheduleEntriesForPatient(pid) { return getScheduleEntries().filter(e=>e.patientId===pid); }
+function getPatientNameById(pid) { return state.patients.find(p=>p.id===pid)?.profile.fullName||"Paciente não associado"; }
+function getScheduleOverview(entries=getScheduleEntries()) {
+  const today=new Date().toISOString().slice(0,10),cm=state.scheduleMonth||new Date().toISOString().slice(0,7);
+  const lp=new Set(entries.filter(e=>e.patientId).map(e=>e.patientId)).size;
+  return {total:entries.length,today:entries.filter(e=>e.date===today).length,month:entries.filter(e=>(e.date||"").startsWith(cm)).length,upcoming:entries.filter(e=>(e.date||"")>=today&&e.status!=="Cancelada").length,linkedPatients:lp};
+}
+
+function openPatientView(tab="cadastro",patientId=state.selectedPatientId) {
+  if(patientId) state.selectedPatientId=patientId;
+  if(!getSelectedPatient()) {
+    if(!state.patients.length){state.activeView="patient";state.activeTab="cadastro";render();alert("Cadastre um paciente primeiro.");return false;}
+    state.selectedPatientId=state.patients[0].id;
+  }
+  state.dashboardCollapsed=true;state.activeView="patient";state.activeTab=tab;render();return true;
+}
+function openFinanceView(){state.dashboardCollapsed=true;state.activeView="finance";render();}
+function openSystemView(){state.dashboardCollapsed=true;state.activeView="system";render();}
+function openEmailView(){state.dashboardCollapsed=true;state.activeView="email";render();}
+function openAgendaView(sid=state.selectedScheduleId,m=state.scheduleMonth){state.dashboardCollapsed=true;state.activeView="agenda";if(sid)state.selectedScheduleId=sid;if(m)state.scheduleMonth=m;render();}
+function openOverviewView(v){state.dashboardCollapsed=true;state.activeView=v;render();}
+function openHomeView(){state.selectedPatientId=null;state.selectedSessionId=null;state.selectedScheduleId=null;state.dashboardCollapsed=false;state.activeView="patient";state.activeTab="cadastro";render();}
+function openSessionRecord(pid,sid){state.selectedPatientId=pid;state.selectedSessionId=sid;state.dashboardCollapsed=true;state.activeView="patient";state.activeTab="sessao";render();}
+function openGalleryRecord(pid){state.selectedPatientId=pid;state.dashboardCollapsed=true;state.activeView="patient";state.activeTab="galeria";render();}
+
+// ─── FINANCEIRO ───────────────────────────────────────────────────────────────
+function getVariableCostTotal(s=state.settings){return(s.costItems||[]).reduce((sum,i)=>sum+asNumber(i.unitCost)*asNumber(i.quantity||1),0);}
+function getTotalInvestment(s=state.settings){return(s.investments||[]).reduce((sum,i)=>sum+asNumber(i.value),0);}
+function getMonthlyDepreciation(s=state.settings){return(s.investments||[]).reduce((sum,i)=>{const y=asNumber(i.usefulLifeYears);if(!y)return sum;return sum+asNumber(i.value)/(y*12);},0);}
+function getSessionTypeMeta(id){return SESSION_TYPES.find(i=>i.id===id)||SESSION_TYPES[1];}
+function getDefaultFeeByType(id,s=state.settings){const m=getSessionTypeMeta(id);return asNumber(s.pricing[m.pricingKey]);}
+function getSessionEstimatedCost(session,s=state.settings){if(!session)return 0;const mc=asNumber(session.finance?.variableCostOverride);if(mc>0)return mc;const m=getSessionTypeMeta(session.finance?.sessionType);return getVariableCostTotal(s)*m.costMultiplier;}
+function getSessionPlannedFee(session,s=state.settings){if(!session)return 0;const af=asNumber(session.finance?.agreedFee),eh=asNumber(session.finance?.extraHours);if(af>0)return af+eh*asNumber(s.pricing.additionalHour);return getDefaultFeeByType(session.finance?.sessionType,s)+eh*asNumber(s.pricing.additionalHour);}
+function getSessionMarkup(session,s=state.settings){const cc=asNumber(session?.finance?.clinicCharge);if(!cc)return 0;return cc-getSessionPlannedFee(session,s);}
+function getMonthlySimulationRows(s=state.settings){const vc=getVariableCostTotal(s);return SESSION_TYPES.map(m=>{const q=asNumber(s.monthlySimulation[m.quantityKey]),fee=getDefaultFeeByType(m.id,s),ec=vc*m.costMultiplier;return{...m,quantity:q,fee,gross:fee*q,variableCost:ec*q,margin:(fee-ec)*q};});}
+function getFinanceEntryTotal(e){return asNumber(e.quantity)*asNumber(e.unitValue);}
+function getFinanceOverview(s=state.settings){const t={receita:0,custo:0,investimento:0,reembolso:0,outro:0};(s.financeEntries||[]).forEach(e=>{const tot=getFinanceEntryTotal(e);if(e.movementType==="Receita")t.receita+=tot;else if(e.movementType==="Custo variável")t.custo+=tot;else if(e.movementType==="Investimento")t.investimento+=tot;else if(e.movementType==="Reembolso")t.reembolso+=tot;else t.outro+=tot;});return{...t,saldo:t.receita+t.reembolso-t.custo-t.investimento};}
+
+// ─── SAVE/DIRTY ───────────────────────────────────────────────────────────────
+function markDirty(msg="Alterações pendentes"){state.dirty=true;state.saveMessage=msg;renderSaveBadge();}
+function markSaved(msg="Tudo salvo"){state.dirty=false;state.saveMessage=msg;renderSaveBadge("success");}
+function renderSaveBadge(mode=""){const b=els.saveBadge;if(!b)return;b.textContent=state.saving?"Salvando...":state.saveMessage;b.className="save-badge";if(state.dirty)b.classList.add("dirty");if(!state.dirty&&mode==="success")b.classList.add("success");}
+
+// ─── PERSISTÊNCIA ─────────────────────────────────────────────────────────────
+function saveAll() {
+  const db = readDb();
+  db.patients = state.patients;
+  db.settings = state.settings;
+  writeDb(db);
+}
+
+function savePatient() {
+  const patient = getSelectedPatient();
+  state.saving = true; renderSaveBadge();
+  try {
+    if (patient) {
+      patient.updatedAt = new Date().toISOString();
+      const idx = state.patients.findIndex(p=>p.id===patient.id);
+      if (idx >= 0) state.patients[idx] = patient;
+    }
+    saveAll();
+    markSaved("SedaFlow salvo");
+    render();
+  } catch(e) {
+    markDirty(e.message);
+    alert(e.message);
+  } finally {
+    state.saving = false; renderSaveBadge();
+  }
+}
+
+function saveSettingsWorkspace(msg="Configurações salvas") {
+  state.saving = true; renderSaveBadge();
+  try { saveAll(); markSaved(msg); render(); }
+  catch(e) { markDirty(e.message); alert(e.message); }
+  finally { state.saving = false; renderSaveBadge(); }
+}
+
+function saveActiveWorkspace() {
+  if (state.activeView==="agenda") { saveSettingsWorkspace("Agenda salva"); return; }
+  if (state.activeView==="finance") { saveSettingsWorkspace("Financeiro salvo"); return; }
+  if (state.activeView==="email") { saveSettingsWorkspace("E-mail salvo"); return; }
+  if (state.activeView==="system") { saveSettingsWorkspace("Configurações salvas"); return; }
+  savePatient();
+}
+
+async function loadPatients() {
+  const db = readDb();
+  state.patients = Array.isArray(db.patients) ? db.patients.map(normalizePatient) : [];
+  state.settings = normalizeSettings(db.settings || {});
+  render();
+}
+
+// ─── CRUD PACIENTES ───────────────────────────────────────────────────────────
+function createPatient() {
+  const now = new Date().toISOString();
+  const p = normalizePatient({ ...emptyPatient(), id: createId("patient"), createdAt: now, updatedAt: now });
+  state.patients.unshift(p);
+  state.selectedPatientId = p.id;
+  state.dashboardCollapsed = true; state.activeView = "patient"; state.activeTab = "cadastro";
+  saveAll(); markSaved("Paciente criado"); render();
+}
+
+function deleteSelectedPatient() {
+  const p = getSelectedPatient(); if (!p) return;
+  if (!confirm(`Excluir ${p.profile.fullName||"este paciente"}?`)) return;
+  state.patients = state.patients.filter(x=>x.id!==p.id);
+  state.settings.scheduleEntries = (state.settings.scheduleEntries||[]).map(e=>e.patientId===p.id?{...e,patientId:""}:e);
+  state.selectedPatientId = null; state.activeView = "patient"; state.dashboardCollapsed = false;
+  saveAll(); markSaved("Paciente removido"); render();
+}
+
+// ─── SESSÕES ─────────────────────────────────────────────────────────────────
+function addSession() {
+  const p=getSelectedPatient();if(!p)return;
+  const s=emptySession();p.sessions.unshift(s);state.selectedSessionId=s.id;
+  state.activeView="patient";state.activeTab="sessao";markDirty("Nova sessão adicionada");render();
+}
+function deleteSession() {
+  const p=getSelectedPatient(),s=getSelectedSession(p);if(!p||!s)return;
+  if(!confirm("Excluir esta sessão?"))return;
+  p.sessions=p.sessions.filter(x=>x.id!==s.id);state.selectedSessionId=p.sessions[0]?.id||null;
+  markDirty("Sessão removida");render();
+}
+function ensureSessionSelected(p) {
+  if(!p.sessions.length){state.selectedSessionId=null;return null;}
+  if(!state.selectedSessionId||!p.sessions.some(s=>s.id===state.selectedSessionId))state.selectedSessionId=p.sessions[0].id;
+  return getSelectedSession(p);
+}
+function addSessionRow(type) {
+  const s=getSelectedSession();if(!s)return;
+  if(type==="monitoring")s.monitoring.push({id:createId("monitor"),time:"",spo2:"",wilson:"",nitrousPercent:"",observations:""});
+  else s.complications.push({id:createId("comp"),time:"",type:"",conduct:""});
+  markDirty();renderWorkspace();
+}
+function removeSessionRow(type,rowId) {
+  const s=getSelectedSession();if(!s)return;
+  s[type]=s[type].filter(r=>r.id!==rowId);markDirty();renderWorkspace();
+}
+function updateSessionRow(type,rowId,field,value) {
+  const s=getSelectedSession();if(!s)return;
+  const r=s[type].find(x=>x.id===rowId);if(!r)return;r[field]=value;markDirty();
+}
+
+// ─── AGENDA ──────────────────────────────────────────────────────────────────
+function createScheduleEntry(date="",patientId="") {
+  const ed=date||new Date().toISOString().slice(0,10);
+  const e=defaultScheduleEntry(ed,patientId);
+  state.settings.scheduleEntries.unshift(e);state.selectedScheduleId=e.id;
+  state.activeView="agenda";state.scheduleMonth=e.date.slice(0,7);
+  markDirty("Novo agendamento criado");render();
+}
+function deleteSelectedScheduleEntry() {
+  const e=getSelectedScheduleEntry();if(!e)return;
+  if(!confirm("Excluir este agendamento?"))return;
+  state.settings.scheduleEntries=state.settings.scheduleEntries.filter(x=>x.id!==e.id);
+  state.selectedScheduleId=getScheduleEntries()[0]?.id||null;
+  markDirty("Agendamento removido");render();
+}
+function openScheduleDay(date) {
+  const e=getScheduleEntries().find(x=>x.date===date);
+  if(e){state.selectedScheduleId=e.id;state.scheduleMonth=date.slice(0,7);openAgendaView(e.id,date.slice(0,7));return;}
+  createScheduleEntry(date);
+}
+function linkScheduleToPatient(pid,sid) {
+  if(!pid||!sid)return;
+  const e=state.settings.scheduleEntries.find(x=>x.id===sid);if(!e)return;
+  e.patientId=pid;state.selectedScheduleId=e.id;markDirty("Consulta associada");render();
+}
+function unlinkScheduleFromPatient(sid) {
+  const e=state.settings.scheduleEntries.find(x=>x.id===sid);if(!e)return;
+  e.patientId="";markDirty("Consulta desassociada");render();
+}
+
+// ─── SETTINGS ROWS ───────────────────────────────────────────────────────────
+function addSettingsRow(type) {
+  if(type==="costItems")state.settings.costItems.push(defaultCostItem("","",1));
+  else if(type==="investments")state.settings.investments.push(defaultInvestmentItem("","",""));
+  else if(type==="financeEntries")state.settings.financeEntries.push(defaultFinanceEntry());
+  markDirty("Financeiro alterado");renderWorkspace();
+}
+function removeSettingsRow(type,rowId) {
+  if(type==="costItems")state.settings.costItems=state.settings.costItems.filter(x=>x.id!==rowId);
+  else if(type==="investments")state.settings.investments=state.settings.investments.filter(x=>x.id!==rowId);
+  else if(type==="financeEntries")state.settings.financeEntries=state.settings.financeEntries.filter(x=>x.id!==rowId);
+  markDirty("Financeiro alterado");renderWorkspace();
+}
+function updateSettingsRow(type,rowId,field,value) {
+  const col=state.settings[type];if(!Array.isArray(col))return;
+  const item=col.find(e=>e.id===rowId);if(!item)return;item[field]=value;markDirty("Financeiro alterado");
+}
+
+// ─── GALERIA ─────────────────────────────────────────────────────────────────
+async function uploadGallery() {
+  const p=getSelectedPatient(),input=document.getElementById("galleryInput"),noteInput=document.getElementById("galleryNoteInput");
+  if(!p||!input?.files?.length){alert("Selecione pelo menos uma imagem.");return;}
+  const files=[...input.files];
+  for(const f of files){
+    const dataUrl=await fileToDataUrl(f);
+    const img={id:createId("image"),createdAt:new Date().toISOString(),note:noteInput?.value||"",category:"geral",fileName:f.name,mimeType:f.type,url:dataUrl};
+    p.gallery.unshift(img);
+  }
+  input.value="";if(noteInput)noteInput.value="";
+  saveAll();markSaved("Imagens enviadas");render();
+}
+
+function deleteImage(imageId) {
+  const p=getSelectedPatient();if(!p)return;
+  p.gallery=p.gallery.filter(x=>x.id!==imageId);
+  saveAll();markSaved("Imagem removida");render();
+}
+
+function fileToDataUrl(file) {
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(new Error("Falha ao ler imagem."));r.readAsDataURL(file);});
+}
+
+// ─── PDF (IMPRESSÃO) ──────────────────────────────────────────────────────────
+function printPatientRecord() {
+  const p = getSelectedPatient();
+  if (!p) { alert("Selecione um paciente para imprimir a ficha."); return; }
+  const mdasScore = getMdasScore(p);
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Ficha - ${p.profile.fullName||"Paciente"}</title>
+  <style>body{font-family:Arial,sans-serif;font-size:11pt;color:#111;margin:20px} h1{font-size:16pt;margin-bottom:4px} h2{font-size:13pt;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px} table{width:100%;border-collapse:collapse;margin-bottom:12px} td{padding:5px 8px;border:1px solid #ddd;vertical-align:top} td:first-child{font-weight:bold;width:35%;background:#f5f5f5} .badge{display:inline-block;padding:3px 10px;border-radius:12px;background:#e8f2ff;font-weight:bold;font-size:10pt} @media print{body{margin:10px}}</style>
+  </head><body>
+  <h1>SedaFlow — Ficha Clínica</h1>
+  <p style="color:#666;font-size:10pt">Gerado em ${new Date().toLocaleDateString("pt-BR")} • Dr. Matheus Filgueiras</p>
+  <h2>Identificação</h2>
+  <table><tr><td>Nome completo</td><td>${p.profile.fullName||"—"}</td></tr><tr><td>Data de nascimento</td><td>${p.profile.birthDate?formatDate(p.profile.birthDate):"—"} (${p.profile.age||"—"} anos)</td></tr><tr><td>Sexo</td><td>${p.profile.sex||"—"}</td></tr><tr><td>Telefone</td><td>${p.profile.phone||"—"}</td></tr><tr><td>E-mail</td><td>${p.profile.email||"—"}</td></tr><tr><td>Profissão</td><td>${p.profile.profession||"—"}</td></tr></table>
+  <h2>Avaliação Clínica</h2>
+  <table><tr><td>Classificação ASA</td><td>${p.clinicalAssessment.asaClass||"—"}</td></tr><tr><td>PA basal</td><td>${p.clinicalAssessment.bloodPressureBaseline||"—"}</td></tr><tr><td>SpO2 basal</td><td>${p.clinicalAssessment.spo2Baseline||"—"}</td></tr><tr><td>Respiração nasal</td><td>${p.clinicalAssessment.nasalBreathing||"—"}</td></tr><tr><td>Observações de via aérea</td><td>${p.clinicalAssessment.airwayNotes||"—"}</td></tr><tr><td>Queixa principal</td><td>${p.treatment.complaint||"—"}</td></tr></table>
+  <h2>Escalas de Ansiedade</h2>
+  <table><tr><td>EVA de ansiedade</td><td>${p.anxiety.evaScore||"—"} / 10</td></tr><tr><td>MDAS</td><td>${mdasScore} / 25 — ${getMdasClassification(mdasScore)}</td></tr></table>
+  <h2>Sessões de Sedação (${p.sessions.length})</h2>
+  ${p.sessions.length===0?'<p>Nenhuma sessão registrada.</p>':p.sessions.map(s=>`<table><tr><td>Data</td><td>${formatDate(s.date)}</td></tr><tr><td>Procedimento</td><td>${s.procedure||"—"}</td></tr><tr><td>Profissional sedacionista</td><td>${s.clinician||SEDATION_PROFESSIONAL}</td></tr><tr><td>SpO2 basal</td><td>${s.spo2Baseline||"—"}</td></tr><tr><td>N2O inicial</td><td>${s.initialNitrous||"—"}%</td></tr><tr><td>Tempo total</td><td>${s.totalSedationTime||"—"}</td></tr><tr><td>Wilson na alta</td><td>${s.dischargeWilson||"—"}</td></tr></table>`).join("")}
+  </body></html>`;
+  const w = window.open("", "_blank");
+  if (!w) { alert("O navegador bloqueou a nova aba. Habilite popups para este site."); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 400);
+}
+
+// ─── RENDER HELPERS ───────────────────────────────────────────────────────────
+function textField(label,path,value,span="span-4",type="text",placeholder=""){return`<label class="field ${span}"><span>${label}</span><input type="${type}" data-path="${path}" value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" /></label>`;}
+function textAreaField(label,path,value,span="span-12",placeholder=""){return`<label class="field ${span}"><span>${label}</span><textarea data-path="${path}" placeholder="${escapeHtml(placeholder)}">${escapeHtml(value)}</textarea></label>`;}
+function selectField(label,path,value,options,span="span-4"){const opts=options.map(o=>typeof o==="string"?{value:o,label:o}:o);return`<label class="field ${span}"><span>${label}</span><select data-path="${path}"><option value="">Selecione</option>${opts.map(o=>`<option value="${escapeHtml(o.value)}" ${String(value)===String(o.value)?"selected":""}>${escapeHtml(o.label)}</option>`).join("")}</select></label>`;}
+function readonlyAgeField(label,value,span="span-4"){return`<label class="field ${span}"><span>${label}</span><input type="text" value="${escapeHtml(value)}" data-derived-age="true" readonly /></label>`;}
+function sessionField(label,field,value,span="span-4",type="text",step=""){const sa=step?` step="${step}"`:"";return`<label class="field ${span}"><span>${label}</span><input type="${type}"${sa} data-session-field="${field}" value="${escapeHtml(value)}" /></label>`;}
+function sessionReadonlyField(label,value,span="span-4"){return`<label class="field ${span}"><span>${label}</span><input type="text" value="${escapeHtml(value)}" readonly /></label>`;}
+function sessionTextArea(label,field,value,span="span-12"){return`<label class="field ${span}"><span>${label}</span><textarea data-session-field="${field}">${escapeHtml(value)}</textarea></label>`;}
+function sessionSelect(label,field,value,options,span="span-4"){const opts=options.map(o=>typeof o==="string"?{value:o,label:o}:o);return`<label class="field ${span}"><span>${label}</span><select data-session-field="${field}"><option value="">Selecione</option>${opts.map(o=>`<option value="${escapeHtml(o.value)}" ${String(value)===String(o.value)?"selected":""}>${escapeHtml(o.label)}</option>`).join("")}</select></label>`;}
+function settingsField(label,path,value,span="span-4",type="number",step="0.01"){const sa=type==="number"?` step="${step}"`:"";return`<label class="field ${span}"><span>${label}</span><input type="${type}"${sa} data-settings-path="${path}" value="${escapeHtml(value)}" /></label>`;}
+
+// ─── RENDERS DAS ABAS ─────────────────────────────────────────────────────────
+function renderCadastroTab(p) {
+  const son=p.profile.nationality==="Outra";
+  return `<article class="surface-card section-block"><p class="eyebrow">Identificação</p><div class="form-grid">
+    ${textField("Nome completo","profile.fullName",p.profile.fullName,"span-8")}
+    ${textField("Data de nascimento","profile.birthDate",p.profile.birthDate,"span-4","date")}
+    ${readonlyAgeField("Idade",p.profile.age,"span-3")}
+    ${selectField("Sexo","profile.sex",p.profile.sex,["Feminino","Masculino","Outro"],"span-3")}
+    ${selectField("Estado civil","profile.maritalStatus",p.profile.maritalStatus,MARITAL_STATUS_OPTIONS,"span-3")}
+    ${selectField("Cor ou raça","profile.race",p.profile.race,RACE_OPTIONS,"span-3")}
+    ${selectField("Nacionalidade","profile.nationality",p.profile.nationality,NATIONALITY_OPTIONS,"span-4")}
+    ${son?textField("Qual nacionalidade?","profile.otherNationality",p.profile.otherNationality,"span-4"):""}
+    ${textField("Profissão","profile.profession",p.profile.profession,"span-4")}
+    ${selectField("Escolaridade","profile.education",p.profile.education,EDUCATION_OPTIONS,"span-4")}
+    ${textAreaField("Endereço completo","profile.address",p.profile.address,"span-8")}
+    ${textField("Bairro","profile.district",p.profile.district,"span-4")}
+    ${textField("Cidade","profile.city",p.profile.city,"span-5")}
+    ${selectField("UF","profile.state",p.profile.state,UF_OPTIONS,"span-4")}
+    ${textField("CEP","profile.zipCode",p.profile.zipCode,"span-3")}
+    ${textField("Celular","profile.phone",p.profile.phone,"span-4")}
+    ${textField("Telefone comercial","profile.workPhone",p.profile.workPhone,"span-4")}
+    ${textField("E-mail","profile.email",p.profile.email,"span-6","email")}
+    ${textField("Nome do pai","profile.fatherName",p.profile.fatherName,"span-6")}
+    ${textField("Nome da mãe","profile.motherName",p.profile.motherName,"span-6")}
+    ${textField("Responsável legal","profile.legalGuardian",p.profile.legalGuardian,"span-6")}
+    ${textField("CPF do responsável","profile.guardianCpf",p.profile.guardianCpf,"span-6")}
+    ${textField("Telefone do responsável","profile.guardianPhone",p.profile.guardianPhone,"span-6")}
+  </div></article>
+  <article class="surface-card section-block"><p class="eyebrow">Tratamento e avaliação</p><div class="form-grid">
+    ${textAreaField("Queixa principal","treatment.complaint",p.treatment.complaint,"span-6")}
+    ${textAreaField("Objetivo desejado pelo paciente","treatment.desiredObjective",p.treatment.desiredObjective,"span-6")}
+    ${textField("Última consulta odontológica","treatment.lastDentalVisitDate",p.treatment.lastDentalVisitDate,"span-4","date")}
+    ${textField("Motivo da última consulta","treatment.lastDentalVisitReason",p.treatment.lastDentalVisitReason,"span-8")}
+    ${selectField("Respiração nasal","clinicalAssessment.nasalBreathing",p.clinicalAssessment.nasalBreathing,["Adequada","Parcial","Prejudicada"],"span-3")}
+    ${textField("Estado de jejum","clinicalAssessment.fastingStatus",p.clinicalAssessment.fastingStatus,"span-3")}
+    ${textField("PA basal","clinicalAssessment.bloodPressureBaseline",p.clinicalAssessment.bloodPressureBaseline,"span-3")}
+    ${textField("FC basal","clinicalAssessment.heartRateBaseline",p.clinicalAssessment.heartRateBaseline,"span-3")}
+    ${textField("FR basal","clinicalAssessment.respiratoryRateBaseline",p.clinicalAssessment.respiratoryRateBaseline,"span-3")}
+    ${textField("SpO2 basal","clinicalAssessment.spo2Baseline",p.clinicalAssessment.spo2Baseline,"span-3")}
+    ${textAreaField("Observações de via aérea e exame clínico","clinicalAssessment.airwayNotes",p.clinicalAssessment.airwayNotes,"span-6")}
+    ${textAreaField("Plano profissional e observações","clinicalAssessment.professionalNotes",p.clinicalAssessment.professionalNotes,"span-6")}
+  </div></article>`;
+}
+
+function renderBinarySection(title,sectionPath,fields,p) {
+  return `<article class="surface-card section-block"><p class="section-heading">${title}</p><div class="check-grid">
+    ${fields.map(([key,label])=>{const v=getValueAtPath(p,`${sectionPath}.${key}`)||"";return`<label class="binary-field"><p>${label}</p><select data-path="${sectionPath}.${key}"><option value="" ${v===""?"selected":""}>Não informado</option><option value="Sim" ${v==="Sim"?"selected":""}>Sim</option><option value="Nao" ${v==="Nao"?"selected":""}>Não</option></select></label>`;}).join("")}
+  </div></article>`;
+}
+
+function renderConsultasTab(p) {
+  const entries=getScheduleEntriesForPatient(p.id),today=new Date().toISOString().slice(0,10);
+  const upcoming=entries.filter(e=>(e.date||"")>=today&&e.status!=="Cancelada").length;
+  const completed=entries.filter(e=>e.status==="Concluída").length;
+  const unassigned=getScheduleEntries().filter(e=>!e.patientId);
+  return `<article class="surface-card section-block"><p class="eyebrow">Consultas e agenda</p>
+  <div class="finance-kpi-grid">
+    <article class="finance-kpi-card"><span class="stat-label">Consultas ligadas</span><strong class="stat-value">${entries.length}</strong><small class="stat-helper">agendamentos vinculados</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Próximas</span><strong class="stat-value">${upcoming}</strong><small class="stat-helper">consultas futuras</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Concluídas</span><strong class="stat-value">${completed}</strong><small class="stat-helper">consultas finalizadas</small></article>
+  </div></article>
+  <article class="surface-card section-block">
+    <div class="card-toolbar finance-toolbar"><div><p class="section-heading">Vincular consultas</p></div>
+    <div class="toolbar-actions">
+      <button class="primary-button" type="button" data-action="create-patient-appointment" data-patient-id="${p.id}">Agendar consulta</button>
+      <button class="secondary-button" type="button" data-action="open-agenda-view">Abrir agenda geral</button>
+    </div></div>
+    <div class="form-grid">
+      <label class="field span-9"><span>Horário sem paciente para associar</span><select id="patientAppointmentSelector"><option value="">Selecione um horário livre</option>${unassigned.map(e=>`<option value="${e.id}">${escapeHtml(formatDate(e.date))} • ${escapeHtml(formatTime(e.startTime))} • ${escapeHtml(e.appointmentType)}</option>`).join("")}</select></label>
+      <div class="toolbar-actions span-3"><button class="secondary-button" type="button" data-action="link-schedule-to-patient" data-patient-id="${p.id}">Associar horário</button></div>
+    </div>
+    ${!unassigned.length?'<div class="info-banner">Não há horários livres na agenda. Crie um novo agendamento por aqui.</div>':""}
+  </article>
+  <article class="surface-card section-block"><p class="section-heading">Consultas vinculadas</p>
+  <div class="schedule-list">${!entries.length?'<div class="info-banner">Nenhuma consulta associada ainda.</div>':entries.map(e=>`<article class="schedule-item-card"><div><p class="card-heading">${escapeHtml(e.appointmentType)}</p><p class="muted">${escapeHtml(formatDate(e.date))} • ${escapeHtml(formatTime(e.startTime))}</p><p class="muted">Status: ${escapeHtml(e.status)}</p>${e.notes?`<p>${escapeHtml(e.notes)}</p>`:""}</div><div class="toolbar-actions"><button class="secondary-button" type="button" data-action="open-agenda-entry" data-schedule-id="${e.id}">Abrir na agenda</button><button class="danger-button" type="button" data-action="unlink-schedule-from-patient" data-patient-id="${p.id}" data-schedule-id="${e.id}">Desassociar</button></div></article>`).join("")}</div>
+  </article>`;
+}
+
+function renderAnamneseTab(p) {
+  const acuteCards=ACUTE_CONDITIONS.map(item=>{const checked=(p.systems.acuteConditions||[]).includes(item);return`<label class="check-card"><input type="checkbox" data-array-path="systems.acuteConditions" data-array-value="${escapeHtml(item)}" ${checked?"checked":""}/><span>${item}</span></label>`;}).join("");
+  const oralHabitCards=ORAL_HABITS.map(item=>{const checked=(p.habits.oralHabits||[]).includes(item);return`<label class="check-card"><input type="checkbox" data-array-path="habits.oralHabits" data-array-value="${escapeHtml(item)}" ${checked?"checked":""}/><span>${item}</span></label>`;}).join("");
+  let sectionContent="";
+  if(state.anamneseSection==="odontologica"){
+    sectionContent=`<article class="surface-card section-block"><p class="eyebrow">História odontológica</p><div class="form-grid">
+      ${selectField("Já tomou anestesia local?","dentalHistory.localAnesthesia",p.dentalHistory.localAnesthesia,["Sim","Não"],"span-4")}
+      ${textField("Reação adversa","dentalHistory.adverseReaction",p.dentalHistory.adverseReaction,"span-8")}
+      ${selectField("Sedação inalatória prévia?","dentalHistory.previousNitrous",p.dentalHistory.previousNitrous,["Sim","Não"],"span-4")}
+      ${textField("Como foi a experiência","dentalHistory.nitrousExperience",p.dentalHistory.nitrousExperience,"span-8")}
+      ${selectField("Outro tipo de sedação?","dentalHistory.previousSedation",p.dentalHistory.previousSedation,["Sim","Não"],"span-4")}
+      ${textField("Qual e quando","dentalHistory.previousSedationDetails",p.dentalHistory.previousSedationDetails,"span-8")}
+      ${selectField("Bruxismo","dentalHistory.bruxism",p.dentalHistory.bruxism,["Sim","Não"],"span-4")}
+      ${selectField("Período do bruxismo","dentalHistory.bruxismPeriod",p.dentalHistory.bruxismPeriod,["Sono","Vigília","Ambos"],"span-4")}
+      ${textField("Observações do bruxismo","dentalHistory.bruxismNotes",p.dentalHistory.bruxismNotes,"span-4")}
+    </div></article>`;
+  } else if(state.anamneseSection==="medica") {
+    sectionContent=`<article class="surface-card section-block"><p class="eyebrow">História médica</p><div class="form-grid">
+      ${selectField("Acompanhamento médico atual","medicalHistory.currentFollowUp",p.medicalHistory.currentFollowUp,["Sim","Não"],"span-4")}
+      ${textAreaField("Especialidade, médico e motivo","medicalHistory.followUpDetails",p.medicalHistory.followUpDetails,"span-8")}
+      ${textAreaField("Medicamentos de uso diário","medicalHistory.medications",p.medicalHistory.medications,"span-6")}
+      ${textAreaField("Suplementos, vitaminas ou fitoterápicos","medicalHistory.supplements",p.medicalHistory.supplements,"span-6")}
+      ${selectField("Uso de medicamento ou droga nas últimas 72h","medicalHistory.recentDrugUse",p.medicalHistory.recentDrugUse,["Sim","Não"],"span-4")}
+      ${textAreaField("Detalhes do uso recente","medicalHistory.recentDrugUseDetails",p.medicalHistory.recentDrugUseDetails,"span-8")}
+      ${selectField("Alergias","medicalHistory.allergies",p.medicalHistory.allergies,["Sim","Não"],"span-4")}
+      ${textAreaField("Substância e tipo de reação","medicalHistory.allergiesDetails",p.medicalHistory.allergiesDetails,"span-8")}
+      ${selectField("Cirurgias prévias","medicalHistory.surgeries",p.medicalHistory.surgeries,["Sim","Não"],"span-4")}
+      ${textAreaField("Quais e quando","medicalHistory.surgeriesDetails",p.medicalHistory.surgeriesDetails,"span-8")}
+      ${selectField("Transfusão de sangue","medicalHistory.bloodTransfusion",p.medicalHistory.bloodTransfusion,["Sim","Não"],"span-4")}
+      ${textAreaField("Motivo e quando","medicalHistory.bloodTransfusionDetails",p.medicalHistory.bloodTransfusionDetails,"span-8")}
+      ${selectField("Doença grave prévia","medicalHistory.seriousDiseases",p.medicalHistory.seriousDiseases,["Sim","Não"],"span-4")}
+      ${textAreaField("Detalhes da doença grave","medicalHistory.seriousDiseasesDetails",p.medicalHistory.seriousDiseasesDetails,"span-8")}
+    </div></article>
+    ${SYSTEM_SECTIONS.map(s=>renderBinarySection(s.title,s.path,s.fields,p)).join("")}
+    <article class="surface-card section-block"><p class="section-heading">Condições de fase aguda</p><p class="section-copy">Marque o que estiver presente no momento.</p><div class="quick-grid">${acuteCards}</div></article>`;
+  } else {
+    sectionContent=`<article class="surface-card section-block"><p class="eyebrow">Hábitos e estilo de vida</p><div class="form-grid">
+      ${selectField("Tabagismo atual","habits.smoking",p.habits.smoking,["Sim","Não"],"span-3")}
+      ${textField("Quantidade por dia","habits.smokingAmount",p.habits.smokingAmount,"span-3")}
+      ${textField("Tempo ou cessação","habits.smokingHistory",p.habits.smokingHistory,"span-3")}
+      ${selectField("Uso de álcool","habits.alcohol",p.habits.alcohol,["Sim","Não"],"span-3")}
+      ${textField("Frequência de álcool","habits.alcoholFrequency",p.habits.alcoholFrequency,"span-4")}
+      ${textField("Quantidade habitual","habits.alcoholAmount",p.habits.alcoholAmount,"span-4")}
+      ${selectField("Uso de drogas ilícitas","habits.drugs",p.habits.drugs,["Sim","Não"],"span-4")}
+      ${selectField("Uso recreativo prévio de N2O","habits.recreationalNitrous",p.habits.recreationalNitrous,["Sim","Não"],"span-4")}
+      ${textField("Frequência aproximada do N2O","habits.recreationalNitrousFrequency",p.habits.recreationalNitrousFrequency,"span-8")}
+      ${selectField("Atividade física regular","habits.physicalActivity",p.habits.physicalActivity,["Sim","Não"],"span-4")}
+      ${selectField("Distúrbios do sono","habits.sleepIssues",p.habits.sleepIssues,["Sim","Não"],"span-4")}
+      ${textField("Nível de estresse (0-10)","habits.stressLevel",p.habits.stressLevel,"span-4","number")}
+      ${selectField("Cefaleia temporal frequente","habits.temporalHeadache",p.habits.temporalHeadache,["Sim","Não"],"span-4")}
+      ${selectField("Dor ou cansaço facial ao acordar","habits.faceFatigue",p.habits.faceFatigue,["Sim","Não"],"span-4")}
+    </div><div class="quick-grid">${oralHabitCards}</div></article>`;
+  }
+  return `<article class="surface-card section-block"><div class="card-toolbar"><p class="section-heading">Seções da anamnese</p></div>
+  <div class="inner-tab-bar">${ANAMNESE_SECTIONS.map(s=>`<button type="button" class="tab-button ${state.anamneseSection===s.id?"active":""}" data-action="switch-anamnese-section" data-anamnese-section="${s.id}">${s.label}</button>`).join("")}</div></article>
+  ${sectionContent}
+  <article class="surface-card section-block"><p class="section-heading">Avaliação final da anamnese</p><div class="form-grid">
+    ${selectField("Classificação ASA","clinicalAssessment.asaClass",p.clinicalAssessment.asaClass,["ASA I","ASA II","ASA III","ASA IV"],"span-4")}
+    ${textAreaField("Observações clínicas importantes","clinicalAssessment.professionalNotes",p.clinicalAssessment.professionalNotes,"span-8")}
+  </div></article>`;
+}
+
+function renderDocumentosTab(p) {
+  const score=getMdasScore(p);
+  const hasConsent=Boolean(p.documents.signedConsentDataUrl);
+  return `<article class="surface-card section-block"><p class="eyebrow">Ansiedade odontológica</p>
+  <div class="form-grid">${textField("EVA de ansiedade (0-10)","anxiety.evaScore",p.anxiety.evaScore,"span-3","number")}${textAreaField("Comportamento observado pelo profissional","habits.observedBehavior",p.habits.observedBehavior,"span-9")}</div>
+  <div class="mdas-grid">${MDAS_QUESTIONS.map((q,i)=>`<article class="mdas-question"><p><strong>${i+1}.</strong> ${q}</p><label class="field"><span>Resposta</span><select data-mdas-index="${i}"><option value="0">Selecione</option>${MDAS_OPTIONS.map(o=>`<option value="${o.value}" ${Number(p.anxiety.mdasAnswers[i])===o.value?"selected":""}>${o.label}</option>`).join("")}</select></label></article>`).join("")}</div>
+  <p class="score-pill">MDAS: ${score}/25 — ${getMdasClassification(score)}</p></article>
+  <article class="surface-card section-block"><p class="eyebrow">Documentos do processo</p><div class="form-grid">
+    ${textField("Orientações pré-sedação entregues em","documents.preSedationOrientationDate",p.documents.preSedationOrientationDate,"span-4","date")}
+    ${textAreaField("Notas sobre orientações e jejum","documents.preSedationOrientationNotes",p.documents.preSedationOrientationNotes,"span-8")}
+    ${textField("TCLE assinado em","documents.consentDate",p.documents.consentDate,"span-4","date")}
+    ${textAreaField("Observações do TCLE","documents.consentNotes",p.documents.consentNotes,"span-8")}
+    <label class="field span-12"><span>Upload do TCLE assinado</span><input type="file" accept=".pdf,image/*" data-document-upload="documents.signedConsentDataUrl" data-document-upload-name="documents.signedConsentFileName"/><small>Envie o TCLE já assinado pelo paciente.</small></label>
+    ${hasConsent?`<article class="reference-card span-12 document-upload-card"><p class="card-heading">TCLE assinado anexado</p><p>${escapeHtml(p.documents.signedConsentFileName||"Arquivo enviado")}</p><a class="secondary-button pdf-action" href="${p.documents.signedConsentDataUrl}" download="${escapeHtml(p.documents.signedConsentFileName||"tcle-assinado")}" target="_blank" rel="noreferrer">Abrir documento anexado</a></article>`:'<div class="info-banner span-12">Nenhum TCLE assinado foi anexado ainda.</div>'}
+    ${textAreaField("Outros documentos ou observações","documents.extraDocsNotes",p.documents.extraDocsNotes,"span-12")}
+  </div></article>
+  <article class="surface-card section-block"><p class="eyebrow">Imprimir ficha clínica</p>
+  <p class="section-copy">Gera uma versão para impressão com os dados do prontuário nesta aba do navegador.</p>
+  <div class="toolbar-actions">
+    <button class="primary-button" type="button" data-action="print-record">Abrir ficha para impressão</button>
+  </div></article>`;
+}
+
+function renderMonitoringRows(session,type) {
+  const rows=type==="monitoring"?session.monitoring:session.complications;
+  if(!rows.length) return '<p class="muted">Nenhum registro adicionado.</p>';
+  if(type==="monitoring") return rows.map(r=>`<div class="table-row"><label class="field"><span>Tempo</span><input type="text" data-session-row="monitoring" data-row-id="${r.id}" data-row-field="time" value="${escapeHtml(r.time)}" placeholder="10 min"/></label><label class="field"><span>SpO2 (%)</span><input type="text" data-session-row="monitoring" data-row-id="${r.id}" data-row-field="spo2" value="${escapeHtml(r.spo2)}"/></label><label class="field"><span>Wilson</span><select data-session-row="monitoring" data-row-id="${r.id}" data-row-field="wilson"><option value="">Selecione</option>${[1,2,3,4,5].map(s=>`<option value="${s}" ${String(r.wilson)===String(s)?"selected":""}>${s}</option>`).join("")}</select></label><label class="field"><span>N2O (%)</span><input type="text" data-session-row="monitoring" data-row-id="${r.id}" data-row-field="nitrousPercent" value="${escapeHtml(r.nitrousPercent)}"/></label><label class="field"><span>Observações</span><input type="text" data-session-row="monitoring" data-row-id="${r.id}" data-row-field="observations" value="${escapeHtml(r.observations)}"/></label><button class="danger-button" type="button" data-action="remove-session-row" data-session-row="monitoring" data-row-id="${r.id}">Remover</button></div>`).join("");
+  return rows.map(r=>`<div class="table-row compact"><label class="field"><span>Tempo</span><input type="text" data-session-row="complications" data-row-id="${r.id}" data-row-field="time" value="${escapeHtml(r.time)}"/></label><label class="field"><span>Intercorrência</span><input type="text" data-session-row="complications" data-row-id="${r.id}" data-row-field="type" value="${escapeHtml(r.type)}"/></label><label class="field"><span>Conduta adotada</span><input type="text" data-session-row="complications" data-row-id="${r.id}" data-row-field="conduct" value="${escapeHtml(r.conduct)}"/></label><button class="danger-button" type="button" data-action="remove-session-row" data-session-row="complications" data-row-id="${r.id}">Remover</button></div>`).join("");
+}
+
+function renderSessaoTab(p) {
+  const session=ensureSessionSelected(p);
+  return `<article class="surface-card section-block">
+  <div class="session-selector">
+    <label class="field"><span>Sessão</span><select id="sessionSelector">${p.sessions.map(s=>`<option value="${s.id}" ${s.id===state.selectedSessionId?"selected":""}>${escapeHtml(s.date||"Sessão sem data")}</option>`).join("")}</select></label>
+    <button class="secondary-button" type="button" data-action="create-session">Nova sessão</button>
+    ${session?'<button class="danger-button" type="button" data-action="delete-session">Excluir sessão</button>':""}
+  </div>
+  ${!session?'<p class="muted">Crie uma sessão para registrar monitorização, Trieger, Wilson e encerramento.</p>':`
+  <div class="form-grid">
+    ${sessionField("Data","date",session.date,"span-4","date")}
+    ${sessionField("Procedimento","procedure",session.procedure,"span-8")}
+    ${sessionReadonlyField("Profissional sedacionista",SEDATION_PROFESSIONAL,"span-6")}
+    ${sessionSelect("Profissional do atendimento","attendingProfessional",session.attendingProfessional,ATTENDING_PROFESSIONAL_OPTIONS,"span-6")}
+    ${sessionField("BZD / dose","benzodiazepineDose",session.benzodiazepineDose,"span-6")}
+    ${sessionField("SpO2 basal","spo2Baseline",session.spo2Baseline,"span-3")}
+    ${sessionField("PA pré-sedação","preSedationPressure",session.preSedationPressure,"span-3")}
+    ${sessionField("Concentração inicial N2O","initialNitrous",session.initialNitrous,"span-3")}
+    ${sessionField("Fluxo total (L/min)","totalFlow",session.totalFlow,"span-3")}
+    ${sessionField("% médio de N2O","averageNitrous",session.averageNitrous,"span-3")}
+    ${sessionField("Escala de dor (0-10)","painScale",session.painScale,"span-3")}
+    ${sessionField("Tempo total de sedação","totalSedationTime",session.totalSedationTime,"span-3")}
+    ${sessionField("Oxigenação pós-N2O (min)","oxygenationMinutes",session.oxygenationMinutes,"span-3")}
+    ${sessionField("SpO2 na alta","dischargeSpo2",session.dischargeSpo2,"span-3")}
+    ${sessionSelect("Wilson na alta","dischargeWilson",session.dischargeWilson,["1","2","3","4","5"],"span-3")}
+    ${sessionField("Paciente liberado por","releasedBy",session.releasedBy,"span-6")}
+    ${sessionTextArea("Observações gerais da sessão","notes",session.notes,"span-12")}
+  </div>
+  <div class="surface-card section-block"><div class="card-toolbar"><p class="section-heading">Monitorização intraoperatória</p><button class="chip-button" type="button" data-action="add-session-row" data-session-row="monitoring">Adicionar linha</button></div><div class="table-like">${renderMonitoringRows(session,"monitoring")}</div></div>
+  <div class="surface-card section-block"><div class="card-toolbar"><p class="section-heading">Intercorrências</p><button class="chip-button" type="button" data-action="add-session-row" data-session-row="complications">Adicionar intercorrência</button></div><div class="table-like">${renderMonitoringRows(session,"complications")}</div></div>
+  <div class="surface-card section-block"><p class="eyebrow">Teste de Trieger</p>
+  <div class="form-grid">${sessionField("Data do teste","trieger.date",session.trieger.date,"span-4","date")}</div>
+  <div class="quick-grid">
+    <article class="reference-card"><p class="card-heading">Trieger inicial</p>
+    <div class="form-grid">${sessionField("Hora","trieger.initialTime",session.trieger.initialTime,"span-6","time")}${sessionTextArea("Observações","trieger.initialNotes",session.trieger.initialNotes,"span-12")}</div>
+    <label class="field"><span>Foto do teste inicial</span><input type="file" accept="image/*" data-trieger-image="trieger.initialImageDataUrl"/></label>
+    ${session.trieger.initialImageDataUrl?`<img class="trieger-preview" src="${session.trieger.initialImageDataUrl}" alt="Trieger inicial"/>`:'<p class="muted">Nenhuma imagem enviada.</p>'}</article>
+    <article class="reference-card"><p class="card-heading">Trieger final</p>
+    <div class="form-grid">${sessionField("Hora","trieger.finalTime",session.trieger.finalTime,"span-6","time")}${sessionTextArea("Observações","trieger.finalNotes",session.trieger.finalNotes,"span-12")}</div>
+    <label class="field"><span>Foto do teste final</span><input type="file" accept="image/*" data-trieger-image="trieger.finalImageDataUrl"/></label>
+    ${session.trieger.finalImageDataUrl?`<img class="trieger-preview" src="${session.trieger.finalImageDataUrl}" alt="Trieger final"/>`:'<p class="muted">Nenhuma imagem enviada.</p>'}</article>
+  </div></div>
+  <div class="surface-card section-block"><p class="eyebrow">Referência da escala de Wilson</p>
+  <div class="wilson-reference-grid">${Object.entries(WILSON_REFERENCE).map(([k,d])=>`<article class="reference-card wilson-reference-card"><p class="card-heading">Escore ${k}</p><p>${d}</p></article>`).join("")}</div></div>
+  `}</article>`;
+}
+
+function renderFinanceTab() {
+  const s=state.settings,vc=getVariableCostTotal(s),ti=getTotalInvestment(s),md=getMonthlyDepreciation(s);
+  const s4=vc+md/4,s8=vc+md/8;
+  const rows=getMonthlySimulationRows(s);
+  const mg=rows.reduce((a,r)=>a+r.gross,0),mv=rows.reduce((a,r)=>a+r.variableCost,0),mm=rows.reduce((a,r)=>a+r.margin,0);
+  const pb=mm>0?ti/mm:0;
+  const fo=getFinanceOverview(s);
+  return `<article class="surface-card section-block">
+  <div class="card-toolbar finance-toolbar"><div><p class="eyebrow">Financeiro geral</p><h3 class="finance-title">Controle de custos, honorários, repasses e investimentos.</h3></div>
+  <div class="toolbar-actions"><button class="primary-button" type="button" data-action="save-finance-now">Salvar financeiro</button></div></div>
+  <div class="finance-kpi-grid">
+    <article class="finance-kpi-card"><span class="stat-label">Receitas lançadas</span><strong class="stat-value">${formatMoney(fo.receita)}</strong><small class="stat-helper">honorários e repasses</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Custos variáveis</span><strong class="stat-value">${formatMoney(fo.custo)}</strong><small class="stat-helper">gases, materiais e consumo</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Investimentos</span><strong class="stat-value">${formatMoney(fo.investimento)}</strong><small class="stat-helper">equipamentos e estrutura</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Saldo geral</span><strong class="stat-value">${formatMoney(fo.saldo)}</strong><small class="stat-helper">receitas menos custos</small></article>
+  </div></article>
+  <article class="surface-card section-block">
+  <div class="card-toolbar finance-toolbar"><p class="section-heading">Lançamentos financeiros</p>
+  <div class="toolbar-actions"><button class="primary-button" type="button" data-action="save-finance-now">Salvar</button><button class="chip-button" type="button" data-action="add-settings-row" data-settings-row-type="financeEntries">Adicionar lançamento</button></div></div>
+  <div class="finance-table">${s.financeEntries.length?s.financeEntries.map(e=>`<div class="finance-entry-row"><label class="field"><span>Data</span><input type="date" data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="date" value="${escapeHtml(e.date)}"/></label><label class="field"><span>Paciente</span><select data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="patientId"><option value="">Sem associação</option>${state.patients.map(p=>`<option value="${p.id}" ${e.patientId===p.id?"selected":""}>${escapeHtml(p.profile.fullName||"Sem nome")}</option>`).join("")}</select></label><label class="field"><span>Categoria</span><select data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="category">${FINANCE_ENTRY_CATEGORIES.map(c=>`<option value="${c}" ${e.category===c?"selected":""}>${c}</option>`).join("")}</select></label><label class="field"><span>Descrição</span><input type="text" data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="description" value="${escapeHtml(e.description)}"/></label><label class="field"><span>Qtd</span><input type="number" step="0.01" data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="quantity" value="${escapeHtml(e.quantity)}"/></label><label class="field"><span>Valor unit.</span><input type="number" step="0.01" data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="unitValue" value="${escapeHtml(e.unitValue)}"/></label><label class="field"><span>Status</span><select data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="status">${FINANCE_ENTRY_STATUS.map(st=>`<option value="${st}" ${e.status===st?"selected":""}>${st}</option>`).join("")}</select></label><div class="finance-inline-total"><span>Total</span><strong>${formatMoney(getFinanceEntryTotal(e))}</strong></div><label class="field finance-notes-field"><span>Obs.</span><input type="text" data-settings-row-type="financeEntries" data-settings-row-id="${e.id}" data-settings-row-field="notes" value="${escapeHtml(e.notes)}"/></label><button class="danger-button" type="button" data-action="remove-settings-row" data-settings-row-type="financeEntries" data-settings-row-id="${e.id}">Remover</button></div>`).join(""):'<p class="muted">Nenhum lançamento ainda.</p>'}</div></article>
+  <article class="surface-card section-block"><p class="section-heading">Tabela de honorários editável</p><div class="form-grid">
+    ${settingsField("Valor hora de sedação","pricing.hourlyRate",s.pricing.hourlyRate,"span-3")}
+    ${settingsField("Sessão curta - até 1h","pricing.shortSession",s.pricing.shortSession,"span-3")}
+    ${settingsField("Sessão média - 1h a 2h","pricing.mediumSession",s.pricing.mediumSession,"span-3")}
+    ${settingsField("Sessão longa - 2h a 3h","pricing.longSession",s.pricing.longSession,"span-3")}
+    ${settingsField("Hora adicional","pricing.additionalHour",s.pricing.additionalHour,"span-3")}
+    ${settingsField("Turno fechado","pricing.afternoonBlock",s.pricing.afternoonBlock,"span-3")}
+    ${settingsField("Pacote por procedimento","pricing.packageReference",s.pricing.packageReference,"span-3")}
+    ${settingsField("Acréscimo por meia hora","pricing.extraHalfHourValue",s.pricing.extraHalfHourValue,"span-3")}
+  </div></article>
+  <article class="surface-card section-block"><div class="card-toolbar"><p class="section-heading">Custos variáveis por sessão</p><button class="chip-button" type="button" data-action="add-settings-row" data-settings-row-type="costItems">Adicionar item</button></div>
+  <div class="finance-table">${s.costItems.length?s.costItems.map(item=>`<div class="finance-table-row"><label class="field"><span>Item</span><input type="text" data-settings-row-type="costItems" data-settings-row-id="${item.id}" data-settings-row-field="name" value="${escapeHtml(item.name)}"/></label><label class="field"><span>Custo unit. (R$)</span><input type="number" step="0.01" data-settings-row-type="costItems" data-settings-row-id="${item.id}" data-settings-row-field="unitCost" value="${escapeHtml(item.unitCost)}"/></label><label class="field"><span>Qtd/sessão</span><input type="number" step="0.01" data-settings-row-type="costItems" data-settings-row-id="${item.id}" data-settings-row-field="quantity" value="${escapeHtml(item.quantity)}"/></label><div class="finance-inline-total"><span>Total</span><strong>${formatMoney(asNumber(item.unitCost)*asNumber(item.quantity))}</strong></div><button class="danger-button" type="button" data-action="remove-settings-row" data-settings-row-type="costItems" data-settings-row-id="${item.id}">Remover</button></div>`).join(""):'<p class="muted">Nenhum item.</p>'}</div></article>
+  <article class="surface-card section-block"><div class="card-toolbar"><p class="section-heading">Investimento e ponto de equilíbrio</p><button class="chip-button" type="button" data-action="add-settings-row" data-settings-row-type="investments">Adicionar</button></div>
+  <div class="finance-table">${s.investments.length?s.investments.map(item=>{const dep=asNumber(item.usefulLifeYears)?asNumber(item.value)/(asNumber(item.usefulLifeYears)*12):0;return`<div class="finance-table-row finance-investment-row"><label class="field"><span>Item</span><input type="text" data-settings-row-type="investments" data-settings-row-id="${item.id}" data-settings-row-field="name" value="${escapeHtml(item.name)}"/></label><label class="field"><span>Valor (R$)</span><input type="number" step="0.01" data-settings-row-type="investments" data-settings-row-id="${item.id}" data-settings-row-field="value" value="${escapeHtml(item.value)}"/></label><label class="field"><span>Vida útil (anos)</span><input type="number" step="0.1" data-settings-row-type="investments" data-settings-row-id="${item.id}" data-settings-row-field="usefulLifeYears" value="${escapeHtml(item.usefulLifeYears)}"/></label><div class="finance-inline-total"><span>Depreciação mensal</span><strong>${formatMoney(dep)}</strong></div><button class="danger-button" type="button" data-action="remove-settings-row" data-settings-row-type="investments" data-settings-row-id="${item.id}">Remover</button></div>`;}).join(""):'<p class="muted">Nenhum investimento.</p>'}</div>
+  <div class="finance-balance-grid"><article class="reference-card"><p class="card-heading">Piso absoluto</p><p>${formatMoney(vc)}</p><small class="muted">cobre apenas custos variáveis</small></article><article class="reference-card"><p class="card-heading">Equilíbrio com 4 sedações/mês</p><p>${formatMoney(s4)}</p><small class="muted">custo variável + depreciação / 4</small></article><article class="reference-card"><p class="card-heading">Equilíbrio com 8 sedações/mês</p><p>${formatMoney(s8)}</p><small class="muted">custo variável + depreciação / 8</small></article></div></article>
+  <article class="surface-card section-block"><p class="section-heading">Simulador mensal adaptável</p>
+  <div class="finance-table">${rows.map(r=>`<div class="finance-table-row finance-simulation-row"><div><span class="card-heading">${r.label}</span><p class="muted">${formatMoney(r.fee)} por sessão</p></div><label class="field"><span>Qtd/mês</span><input type="number" step="1" data-settings-path="monthlySimulation.${r.quantityKey}" value="${escapeHtml(r.quantity)}"/></label><div class="finance-inline-total"><span>Receita bruta</span><strong>${formatMoney(r.gross)}</strong></div><div class="finance-inline-total"><span>Custo variável</span><strong>${formatMoney(r.variableCost)}</strong></div><div class="finance-inline-total"><span>Margem</span><strong>${formatMoney(r.margin)}</strong></div></div>`).join("")}</div>
+  <div class="finance-kpi-grid"><article class="finance-kpi-card"><span class="stat-label">Total mensal</span><strong class="stat-value">${formatMoney(mg)}</strong><small class="stat-helper">receita bruta prevista</small></article><article class="finance-kpi-card"><span class="stat-label">Custos variáveis</span><strong class="stat-value">${formatMoney(mv)}</strong><small class="stat-helper">somatório do mês</small></article><article class="finance-kpi-card"><span class="stat-label">Margem do mês</span><strong class="stat-value">${formatMoney(mm)}</strong><small class="stat-helper">antes do custo fixo</small></article><article class="finance-kpi-card"><span class="stat-label">Retorno do investimento</span><strong class="stat-value">${pb?`${pb.toFixed(1)} meses`:"—"}</strong><small class="stat-helper">com o volume acima</small></article></div></article>
+  <article class="surface-card section-block"><p class="section-heading">Modalidades de cobrança sugeridas</p><div class="quick-grid">${BILLING_MODES.map(m=>`<article class="reference-card"><p class="card-heading">${m.title}</p><p><strong>Quando usar:</strong> ${m.when}</p><p><strong>Como cobrar:</strong> ${m.charge}</p><p><strong>Tolerância:</strong> ${m.tolerance}</p><p class="muted">${m.note}</p></article>`).join("")}</div></article>`;
+}
+
+function renderSystemTab() {
+  return `<article class="surface-card section-block"><p class="eyebrow">Backup e Dados</p>
+  <h3 class="finance-title">Exporte e importe seus dados. Tudo salvo localmente no navegador.</h3>
+  <p class="section-copy">Esta versão offline salva os dados no <strong>localStorage</strong> do seu navegador. Para não perder nada, exporte o JSON regularmente e guarde em local seguro.</p>
+  <div class="finance-kpi-grid">
+    <article class="finance-kpi-card"><span class="stat-label">Pacientes</span><strong class="stat-value">${state.patients.length}</strong><small class="stat-helper">cadastros no banco local</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Sessões</span><strong class="stat-value">${state.patients.reduce((s,p)=>s+p.sessions.length,0)}</strong><small class="stat-helper">registros de sedação</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Agendamentos</span><strong class="stat-value">${(state.settings.scheduleEntries||[]).length}</strong><small class="stat-helper">entradas na agenda</small></article>
+  </div></article>
+  <article class="surface-card section-block"><p class="section-heading">Exportar e importar dados</p>
+  <p class="section-copy">O backup JSON contém todos os pacientes, sessões, galeria (imagens em base64), agenda e financeiro.</p>
+  <div class="toolbar-actions">
+    <button class="primary-button" type="button" data-action="export-json">⬇ Exportar JSON (backup)</button>
+    <button class="secondary-button" type="button" data-action="import-json">⬆ Importar JSON (restaurar)</button>
+  </div>
+  <div class="info-banner" style="margin-top:18px">⚠️ <strong>Importante:</strong> O localStorage é vinculado ao navegador e ao domínio. Se você limpar os dados do navegador, abrir em outro dispositivo ou em modo privado, os dados não estarão disponíveis. Faça backup regularmente.</div></article>
+  <article class="surface-card section-block"><p class="section-heading">E-mail (configuração)</p>
+  <p class="section-copy">O envio de e-mail por SMTP não está disponível nesta versão offline — ele requer um servidor backend (Node.js). Para usar o envio de documentos por e-mail, utilize a <strong>versão Node.js local</strong> do SedaFlow.</p>
+  <div class="info-banner">Nesta versão GitHub Pages, você pode imprimir a ficha clínica diretamente pelo navegador na aba <strong>Escalas e Documentos</strong>.</div></article>`;
+}
+
+function renderEmailTab() {
+  const email={senderName:"Dr. Matheus Filgueiras",senderEmail:"",replyTo:"",...(state.settings.email||{})};
+  return `<article class="surface-card section-block"><p class="eyebrow">Configurações de e-mail</p>
+  <h3 class="finance-title">Configure o remetente para referência futura.</h3>
+  <p class="section-copy">O envio real por SMTP não está disponível nesta versão offline. Use esta seção para salvar as configurações que serão usadas quando migrar para a versão Node.js com servidor.</p>
+  <div class="form-grid">
+    ${settingsField("Nome do remetente","email.senderName",email.senderName,"span-4","text")}
+    ${settingsField("E-mail remetente","email.senderEmail",email.senderEmail,"span-4","email")}
+    ${settingsField("Responder para","email.replyTo",email.replyTo,"span-4","email")}
+  </div>
+  <div class="info-banner">Para envio real de e-mails com documentos em PDF, use a versão do SedaFlow com servidor Node.js local ou hospedado.</div></article>`;
+}
+
+function renderGaleriaTab(p) {
+  return `<article class="surface-card section-block"><p class="eyebrow">Banco de imagens do paciente</p>
+  <div class="gallery-toolbar">
+    <label class="field"><span>Imagens</span><input id="galleryInput" type="file" accept="image/*" multiple/></label>
+    <label class="field"><span>Nota do upload</span><input id="galleryNoteInput" type="text" placeholder="Ex.: pré-operatório, RX, Trieger..."/></label>
+    <button class="primary-button" type="button" data-action="upload-gallery">Fazer upload</button>
+  </div>
+  <div class="info-banner">⚠️ Imagens ficam salvas como base64 no localStorage. Arquivos grandes podem lotar o espaço disponível (~5 MB). Prefira imagens comprimidas.</div>
+  <div class="gallery-grid">${!p.gallery.length?'<p class="muted">Nenhuma imagem enviada ainda.</p>':p.gallery.map(img=>`<article class="gallery-card"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.fileName)}"/><h4>${escapeHtml(img.fileName)}</h4><p>${escapeHtml(img.note||"Sem observação")}</p><p class="muted">${formatDate(img.createdAt)}</p><button class="danger-button" type="button" data-action="delete-image" data-image-id="${img.id}">Excluir imagem</button></article>`).join("")}</div></article>`;
+}
+
+function renderAgendaCalendar(entries,selectedEntry,monthValue) {
+  const [y,m]=monthValue.split("-").map(Number);
+  const firstDay=new Date(y,m-1,1),lastDay=new Date(y,m,0).getDate(),startOffset=firstDay.getDay();
+  const today=new Date().toISOString().slice(0,10),selectedDate=selectedEntry?.date||"";
+  const ebd=entries.reduce((map,e)=>{if(!e.date)return map;if(!map[e.date])map[e.date]=[];map[e.date].push(e);return map;},{});
+  const cells=[];
+  for(let i=0;i<startOffset;i++)cells.push('<div class="calendar-empty"></div>');
+  for(let day=1;day<=lastDay;day++){
+    const dv=`${monthValue}-${String(day).padStart(2,"0")}`;
+    const de=ebd[dv]||[];
+    const isSel=selectedDate===dv,isTod=today===dv;
+    const tc=getScheduleToneClass(de);
+    const fp=de[0]?.patientId?getPatientNameById(de[0].patientId):"Sem paciente";
+    cells.push(`<button class="calendar-day-card ${isSel?"selected":""} ${isTod?"today":""} ${de.length?"has-entries":""}${tc}" type="button" data-action="open-schedule-day" data-schedule-date="${dv}"><strong>${day}</strong><span>${de.length?`${de.length} consulta(s)`:"Livre"}</span><small>${escapeHtml(de.length?fp:"Clique para agendar")}</small></button>`);
+  }
+  return `<div class="calendar-weekdays">${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(l=>`<span>${l}</span>`).join("")}</div><div class="calendar-grid">${cells.join("")}</div>`;
+}
+
+function getScheduleToneClass(entries) {
+  const arr=Array.isArray(entries)?entries:[entries].filter(Boolean);
+  if(arr.some(e=>e?.appointmentType==="Sedação agendada")) return " schedule-tone-sedation";
+  if(arr.some(e=>e?.appointmentType==="Avaliação pré-sedação")) return " schedule-tone-assessment";
+  return "";
+}
+
+function renderAgendaTab() {
+  const entries=getScheduleEntries(),monthValue=state.scheduleMonth||new Date().toISOString().slice(0,7);
+  const me=entries.filter(e=>(e.date||"").startsWith(monthValue));
+  let sel=getSelectedScheduleEntry();
+  if(sel&&!(sel.date||"").startsWith(monthValue))sel=me[0]||null;
+  if((sel?.id||null)!==state.selectedScheduleId)state.selectedScheduleId=sel?.id||null;
+  const ov=getScheduleOverview(entries);
+  return `<article class="surface-card section-block"><p class="eyebrow">Agenda</p>
+  <div class="finance-kpi-grid">
+    <article class="finance-kpi-card"><span class="stat-label">Neste mês</span><strong class="stat-value">${ov.month}</strong><small class="stat-helper">consultas em ${escapeHtml(formatMonthLabel(monthValue))}</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Hoje</span><strong class="stat-value">${ov.today}</strong><small class="stat-helper">agendamentos para hoje</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Próximas</span><strong class="stat-value">${ov.upcoming}</strong><small class="stat-helper">consultas futuras</small></article>
+    <article class="finance-kpi-card"><span class="stat-label">Pacientes vinculados</span><strong class="stat-value">${ov.linkedPatients}</strong><small class="stat-helper">com consultas associadas</small></article>
+  </div></article>
+  <article class="surface-card section-block">
+  <div class="card-toolbar finance-toolbar"><div><p class="section-heading">Calendário</p></div>
+  <div class="toolbar-actions">
+    <label class="field schedule-month-picker"><span>Mês</span><input id="scheduleMonthInput" type="month" value="${escapeHtml(monthValue)}"/></label>
+    <button class="secondary-button" type="button" data-action="change-schedule-month" data-direction="-1">Mês anterior</button>
+    <button class="secondary-button" type="button" data-action="change-schedule-month" data-direction="0">Hoje</button>
+    <button class="secondary-button" type="button" data-action="change-schedule-month" data-direction="1">Próximo mês</button>
+    <button class="primary-button" type="button" data-action="create-schedule-entry">Novo agendamento</button>
+  </div></div>
+  <div class="calendar-header"><h3 class="finance-title">${escapeHtml(formatMonthLabel(monthValue))}</h3><span class="score-pill">${me.length} consulta(s) neste mês</span></div>
+  ${renderAgendaCalendar(me,sel,monthValue)}</article>
+  <article class="surface-card section-block">
+  <div class="agenda-layout">
+    <div class="schedule-list">${!me.length?'<div class="info-banner">Nenhuma consulta para este mês.</div>':me.map(e=>`<button class="schedule-item-card schedule-item-button ${sel?.id===e.id?"active":""}${getScheduleToneClass(e)}" type="button" data-action="open-agenda-entry" data-schedule-id="${e.id}"><div><p class="card-heading">${escapeHtml(e.appointmentType)}</p><p class="muted">${escapeHtml(formatDate(e.date))} • ${escapeHtml(formatTime(e.startTime))}</p><p>${escapeHtml(e.patientId?getPatientNameById(e.patientId):"Sem paciente associado")}</p></div><span class="overview-chip">${escapeHtml(e.status)}</span></button>`).join("")}</div>
+    <div class="surface-card section-block appointment-editor-card">${!sel?`<p class="section-heading">Nenhum agendamento selecionado</p><p class="section-copy">Crie um novo horário ou clique em um dia do calendário.</p>`:`
+    <div class="card-toolbar finance-toolbar appointment-editor-toolbar"><div><p class="section-heading">Detalhes do agendamento</p></div>
+    <div class="toolbar-actions">
+      <button class="primary-button" type="button" data-action="save-schedule-entry">Salvar</button>
+      ${sel.patientId?`<button class="secondary-button" type="button" data-action="open-linked-patient" data-patient-id="${sel.patientId}">Abrir paciente</button>`:""}
+      <button class="danger-button" type="button" data-action="delete-schedule-entry">Excluir</button>
+    </div></div>
+    <div class="form-grid appointment-editor-grid">
+      <label class="field span-5"><span>Paciente</span><select data-schedule-field="patientId"><option value="">Sem paciente associado</option>${state.patients.map(p=>`<option value="${p.id}" ${sel.patientId===p.id?"selected":""}>${escapeHtml(p.profile.fullName||"Sem nome")}</option>`).join("")}</select></label>
+      <label class="field span-3"><span>Data</span><input type="date" data-schedule-field="date" value="${escapeHtml(sel.date)}"/></label>
+      <label class="field span-4"><span>Status</span><select data-schedule-field="status">${SCHEDULE_STATUS_OPTIONS.map(o=>`<option value="${o}" ${sel.status===o?"selected":""}>${o}</option>`).join("")}</select></label>
+      <label class="field span-6"><span>Tipo de consulta</span><select data-schedule-field="appointmentType">${SCHEDULE_APPOINTMENT_TYPES.map(o=>`<option value="${o}" ${sel.appointmentType===o?"selected":""}>${o}</option>`).join("")}</select></label>
+      <label class="field span-3"><span>Início</span><input type="time" data-schedule-field="startTime" value="${escapeHtml(sel.startTime)}"/></label>
+      <label class="field span-3"><span>Fim</span><input type="time" data-schedule-field="endTime" value="${escapeHtml(sel.endTime)}"/></label>
+      <label class="field span-6"><span>Local</span><input type="text" data-schedule-field="location" value="${escapeHtml(sel.location)}" placeholder="Clínica, consultório, sala..."/></label>
+      <label class="field span-12"><span>Observações</span><textarea data-schedule-field="notes">${escapeHtml(sel.notes)}</textarea></label>
+    </div>`}</div>
+  </div></article>`;
+}
+
+function renderPatientsOverview() {
+  if(!state.patients.length) return `<article class="surface-card section-block"><p class="eyebrow">Pacientes</p><h3 class="finance-title">Nenhum paciente cadastrado</h3></article>`;
+  return `<article class="surface-card section-block"><p class="eyebrow">Pacientes</p><h3 class="finance-title">Lista completa de pacientes</h3>
+  <div class="overview-stack">${state.patients.map(p=>`<button class="overview-card overview-card-button" type="button" data-action="open-patient-record" data-patient-id="${p.id}"><div class="overview-card-head"><strong>${escapeHtml(p.profile.fullName||"Paciente sem nome")}</strong><span class="overview-chip">${p.sessions.length} sessão(ões)</span></div><p class="overview-copy">${escapeHtml(p.profile.phone||"Sem telefone")} · ${escapeHtml(p.profile.email||"Sem e-mail")}</p><small class="muted">Atualizado em ${formatDate(p.updatedAt)}</small></button>`).join("")}</div></article>`;
+}
+
+function renderSessionsOverview() {
+  const pts=state.patients.filter(p=>p.sessions.length);
+  if(!pts.length) return `<article class="surface-card section-block"><p class="eyebrow">Sessões</p><h3 class="finance-title">Nenhuma sessão registrada</h3></article>`;
+  return pts.map(p=>`<article class="surface-card section-block"><div class="overview-section-header"><div><p class="eyebrow">Sessões de sedação</p><h3 class="finance-title">${escapeHtml(p.profile.fullName||"Sem nome")}</h3></div><button class="secondary-button" type="button" data-action="open-patient-record" data-patient-id="${p.id}">Ver ficha</button></div><div class="overview-stack">${p.sessions.map(s=>`<button class="overview-card overview-card-button" type="button" data-action="open-session-record" data-patient-id="${p.id}" data-session-id="${s.id}"><div class="overview-card-head"><strong>${escapeHtml(s.procedure||"Sessão sem procedimento informado")}</strong><span class="overview-chip">${formatDate(s.date)}</span></div><p class="overview-copy">Profissional: ${escapeHtml(s.attendingProfessional||"Não informado")}</p><small class="muted">Tempo total: ${escapeHtml(s.totalSedationTime||"—")} · Wilson alta: ${escapeHtml(s.dischargeWilson||"—")}</small></button>`).join("")}</div></article>`).join("");
+}
+
+function renderGalleryOverview() {
+  const pts=state.patients.filter(p=>p.gallery.length);
+  if(!pts.length) return `<article class="surface-card section-block"><p class="eyebrow">Galeria</p><h3 class="finance-title">Nenhuma imagem enviada</h3></article>`;
+  return pts.map(p=>`<article class="surface-card section-block"><div class="overview-section-header"><div><p class="eyebrow">Galeria do paciente</p><h3 class="finance-title">${escapeHtml(p.profile.fullName||"Sem nome")}</h3></div><button class="secondary-button" type="button" data-action="open-gallery-record" data-patient-id="${p.id}">Abrir galeria</button></div><div class="overview-gallery-grid">${p.gallery.map(img=>`<button class="gallery-card gallery-card-button" type="button" data-action="open-gallery-record" data-patient-id="${p.id}"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.fileName)}"/><h4>${escapeHtml(img.fileName)}</h4><p>${escapeHtml(img.note||"Sem observação")}</p></button>`).join("")}</div></article>`).join("");
+}
+
+// ─── RENDER STATS E ALERTAS ───────────────────────────────────────────────────
+function renderStats() {
+  const tp=state.patients.length,ts=state.patients.reduce((s,p)=>s+p.sessions.length,0);
+  const wg=state.patients.filter(p=>(p.gallery||[]).length>0).length;
+  const fo=getFinanceOverview(),so=getScheduleOverview();
+  const stats=[
+    {label:"Pacientes",value:tp,helper:"cadastros ativos",action:"open-overview-view",view:"patients"},
+    {label:"Sessões",value:ts,helper:"registros de sedação",action:"open-overview-view",view:"sessions"},
+    {label:"Galeria",value:wg,helper:"pacientes com imagens",action:"open-overview-view",view:"gallery"},
+    {label:"Receita lançada",value:formatMoney(fo.receita),helper:"controle financeiro geral",action:"open-finance-view"},
+    {label:"Agenda",value:so.month,helper:"consultas neste mês",action:"open-agenda-view"}
+  ];
+  const tmpl=document.getElementById("statCardTemplate");els.statsGrid.innerHTML="";
+  stats.forEach(st=>{const n=tmpl.content.firstElementChild.cloneNode(true);n.querySelector(".stat-label").textContent=st.label;n.querySelector(".stat-value").textContent=st.value;n.querySelector(".stat-helper").textContent=st.helper;n.dataset.action=st.action;if(st.view)n.dataset.view=st.view;els.statsGrid.appendChild(n);});
+}
+
+function renderHomeAlerts() {
+  const today=new Date();today.setHours(0,0,0,0);
+  const alerts=getScheduleEntries().filter(e=>e.date&&e.status!=="Cancelada").map(e=>{const ed=new Date(`${e.date}T00:00:00`);if(isNaN(ed.getTime()))return null;const diff=Math.floor((ed.getTime()-today.getTime())/(1000*60*60*24));if(diff<0)return null;return {...e,daysRemaining:diff};}).filter(Boolean).sort((a,b)=>(`${String(a.daysRemaining).padStart(4,"0")} ${a.date}`).localeCompare(`${String(b.daysRemaining).padStart(4,"0")} ${b.date}`)).slice(0,3);
+  if(!alerts.length){els.homeAlerts.innerHTML=`<article class="surface-card home-alerts-card"><div class="home-alerts-header"><div><p class="eyebrow">Avisos</p><h3>Próximas consultas</h3></div><span class="overview-chip">Sem alertas</span></div><div class="home-alerts-empty"><p class="muted">Nenhuma consulta futura agendada.</p></div></article>`;return;}
+  els.homeAlerts.innerHTML=`<article class="surface-card home-alerts-card"><div class="home-alerts-header"><div><p class="eyebrow">Avisos</p><h3>Próximas consultas</h3></div><span class="overview-chip">${alerts.length} aviso(s)</span></div><div class="home-alerts-grid">${alerts.map(e=>{const l=e.daysRemaining<=0?{value:"Hoje",helper:"consulta marcada para hoje"}:e.daysRemaining===1?{value:"1",helper:"dia para a consulta"}:{value:String(e.daysRemaining),helper:"dias para a consulta"};return`<button type="button" class="home-alert-item" data-action="open-agenda-entry" data-schedule-id="${e.id}"><div class="home-alert-countdown ${e.daysRemaining===0?"is-today":""}"><strong>${escapeHtml(l.value)}</strong><span>${escapeHtml(l.helper)}</span></div><div class="home-alert-copy"><p class="card-heading">${escapeHtml(e.patientId?getPatientNameById(e.patientId):"Sem paciente")}</p><p>${escapeHtml(e.appointmentType||"Consulta")}</p><small class="muted">${escapeHtml(formatDate(e.date))}${e.startTime?` • ${escapeHtml(formatTime(e.startTime))}`:""}</small></div></button>`;}).join("")}</div></article>`;
+}
+
+function renderPatientList() {
+  const filtered=state.patients.filter(p=>{const h=`${p.profile.fullName} ${p.profile.phone} ${p.profile.email}`.toLowerCase();return h.includes(state.search.toLowerCase());});
+  if(!filtered.length){els.patientList.innerHTML='<div class="patient-card"><p class="muted">Nenhum paciente encontrado.</p></div>';return;}
+  els.patientList.innerHTML=filtered.map(p=>{const active=p.id===state.selectedPatientId?"active":"";const ls=p.sessions[0]?.date?formatDate(p.sessions[0].date):"Sem sessão";return`<article class="patient-card ${active}"><button type="button" data-action="select-patient" data-patient-id="${p.id}"><strong>${escapeHtml(p.profile.fullName||"Paciente sem nome")}</strong><div class="patient-meta"><span>${escapeHtml(p.profile.phone||"Sem telefone")}</span><span>${escapeHtml(ls)}</span></div></button></article>`;}).join("");
+}
+
+function renderTabs() {
+  els.tabBar.innerHTML=TABS.map(t=>`<button type="button" class="tab-button ${state.activeTab===t.id?"active":""}" data-action="switch-tab" data-tab="${t.id}">${t.label}</button>`).join("");
+}
+
+// ─── RENDER WORKSPACE ─────────────────────────────────────────────────────────
+function renderWorkspace() {
+  const av=state.activeView,p=getSelectedPatient();
+  const isSpecial=["agenda","finance","email","system","patients","sessions","gallery"].includes(av);
+
+  if(av==="agenda"){
+    els.homeAlerts.classList.add("hidden");els.emptyState.classList.add("hidden");els.patientWorkspace.classList.remove("hidden");
+    els.tabBar.classList.add("hidden");els.saveBadge.classList.remove("hidden");els.savePatientButton.classList.remove("hidden");
+    els.exportPatientPdfButton.classList.add("hidden");els.deletePatientButton.classList.add("hidden");
+    els.workspaceEyebrow.textContent="Agenda";els.patientTitle.textContent="Agenda";
+    els.patientSubtitle.textContent="Calendário geral dos atendimentos.";els.savePatientButton.textContent="Salvar agenda";
+    els.tabContent.innerHTML=renderAgendaTab();return;
+  }
+  if(av==="finance"){
+    els.homeAlerts.classList.add("hidden");els.emptyState.classList.add("hidden");els.patientWorkspace.classList.remove("hidden");
+    els.tabBar.classList.add("hidden");els.saveBadge.classList.remove("hidden");els.savePatientButton.classList.remove("hidden");
+    els.exportPatientPdfButton.classList.add("hidden");els.deletePatientButton.classList.add("hidden");
+    els.workspaceEyebrow.textContent="Financeiro geral";els.patientTitle.textContent="Financeiro geral";
+    els.patientSubtitle.textContent="Lançamentos, custos, honorários e controle das sedações.";els.savePatientButton.textContent="Salvar financeiro";
+    els.tabContent.innerHTML=renderFinanceTab();return;
+  }
+  if(av==="email"){
+    els.homeAlerts.classList.add("hidden");els.emptyState.classList.add("hidden");els.patientWorkspace.classList.remove("hidden");
+    els.tabBar.classList.add("hidden");els.saveBadge.classList.remove("hidden");els.savePatientButton.classList.remove("hidden");
+    els.exportPatientPdfButton.classList.add("hidden");els.deletePatientButton.classList.add("hidden");
+    els.workspaceEyebrow.textContent="Envio por e-mail";els.patientTitle.textContent="Envio por e-mail";
+    els.patientSubtitle.textContent="Configuração para referência futura.";els.savePatientButton.textContent="Salvar e-mail";
+    els.tabContent.innerHTML=renderEmailTab();return;
+  }
+  if(av==="system"){
+    els.homeAlerts.classList.add("hidden");els.emptyState.classList.add("hidden");els.patientWorkspace.classList.remove("hidden");
+    els.tabBar.classList.add("hidden");els.saveBadge.classList.remove("hidden");els.savePatientButton.classList.remove("hidden");
+    els.exportPatientPdfButton.classList.add("hidden");els.deletePatientButton.classList.add("hidden");
+    els.workspaceEyebrow.textContent="Backup / Dados";els.patientTitle.textContent="Backup e Dados";
+    els.patientSubtitle.textContent="Exporte e importe seus dados com segurança.";els.savePatientButton.textContent="Salvar";
+    els.tabContent.innerHTML=renderSystemTab();return;
+  }
+  if(["patients","sessions","gallery"].includes(av)){
+    els.homeAlerts.classList.add("hidden");els.emptyState.classList.add("hidden");els.patientWorkspace.classList.remove("hidden");
+    els.tabBar.classList.add("hidden");els.saveBadge.classList.add("hidden");els.savePatientButton.classList.add("hidden");
+    els.exportPatientPdfButton.classList.add("hidden");els.deletePatientButton.classList.add("hidden");
+    if(av==="patients"){els.workspaceEyebrow.textContent="Pacientes";els.patientTitle.textContent="Pacientes cadastrados";els.patientSubtitle.textContent="";els.tabContent.innerHTML=renderPatientsOverview();return;}
+    if(av==="sessions"){els.workspaceEyebrow.textContent="Sessões";els.patientTitle.textContent="Sessões de sedação";els.patientSubtitle.textContent="";els.tabContent.innerHTML=renderSessionsOverview();return;}
+    els.workspaceEyebrow.textContent="Galeria";els.patientTitle.textContent="Galeria geral";els.patientSubtitle.textContent="";els.tabContent.innerHTML=renderGalleryOverview();return;
+  }
+  if(!p){
+    els.homeAlerts.classList.remove("hidden");els.emptyState.classList.add("hidden");els.patientWorkspace.classList.add("hidden");return;
+  }
+  els.homeAlerts.classList.add("hidden");els.emptyState.classList.add("hidden");els.patientWorkspace.classList.remove("hidden");
+  els.tabBar.classList.remove("hidden");els.saveBadge.classList.remove("hidden");els.savePatientButton.classList.remove("hidden");
+  els.exportPatientPdfButton.classList.remove("hidden");els.deletePatientButton.classList.remove("hidden");
+  els.workspaceEyebrow.textContent="Prontuário ativo";els.patientTitle.textContent=p.profile.fullName||"Paciente sem nome";
+  els.patientSubtitle.textContent=`${p.profile.phone||"Sem telefone"} - atualizado em ${formatDate(p.updatedAt)}`;
+  els.savePatientButton.textContent="Salvar";
+  renderTabs();
+  if(state.activeTab==="cadastro")els.tabContent.innerHTML=renderCadastroTab(p);
+  else if(state.activeTab==="consultas")els.tabContent.innerHTML=renderConsultasTab(p);
+  else if(state.activeTab==="anamnese")els.tabContent.innerHTML=renderAnamneseTab(p);
+  else if(state.activeTab==="documentos")els.tabContent.innerHTML=renderDocumentosTab(p);
+  else if(state.activeTab==="sessao")els.tabContent.innerHTML=renderSessaoTab(p);
+  else if(state.activeTab==="galeria")els.tabContent.innerHTML=renderGaleriaTab(p);
+}
+
+function render() {
+  if(els.dashboardHeader)els.dashboardHeader.classList.toggle("is-collapsed",state.dashboardCollapsed);
+  renderStats();renderHomeAlerts();renderPatientList();renderWorkspace();renderSaveBadge();
+}
+
+// ─── EVENT HANDLERS ───────────────────────────────────────────────────────────
+document.addEventListener("input", e => {
+  if(e.target.dataset.sessionField){setValueAtPath(getSelectedSession(),e.target.dataset.sessionField,e.target.value);markDirty();return;}
+  if(e.target.dataset.settingsPath){setValueAtPath(state.settings,e.target.dataset.settingsPath,e.target.value);if(["finance","system","email"].includes(state.activeView))markDirty("Configurações alteradas");else markDirty("Financeiro alterado");return;}
+  if(e.target.dataset.settingsRowType){updateSettingsRow(e.target.dataset.settingsRowType,e.target.dataset.settingsRowId,e.target.dataset.settingsRowField,e.target.value);return;}
+  if(e.target.dataset.path){
+    const p=getSelectedPatient();if(!p)return;
+    setValueAtPath(p,e.target.dataset.path,e.target.value);
+    if(e.target.dataset.path==="profile.birthDate"){p.profile.age=calculateAgeFromBirthDate(e.target.value);const af=document.querySelector("[data-derived-age='true']");if(af)af.value=p.profile.age;}
+    if(e.target.dataset.path==="profile.nationality"&&e.target.value!=="Outra")p.profile.otherNationality="";
+    markDirty();return;
+  }
+  if(e.target.dataset.sessionRow){updateSessionRow(e.target.dataset.sessionRow,e.target.dataset.rowId,e.target.dataset.rowField,e.target.value);return;}
+  if(e.target.dataset.scheduleField){
+    const entry=getSelectedScheduleEntry();if(!entry)return;
+    entry[e.target.dataset.scheduleField]=e.target.value;
+    if(e.target.dataset.scheduleField==="date"&&e.target.value)state.scheduleMonth=e.target.value.slice(0,7);
+    markDirty("Agenda alterada");
+    if(["patientId","status","appointmentType"].includes(e.target.dataset.scheduleField))renderWorkspace();
+  }
+});
+
+document.addEventListener("change", e => {
+  if(e.target.dataset.documentUpload){
+    const file=e.target.files?.[0];if(!file)return;
+    fileToDataUrl(file).then(url=>{
+      const p=getSelectedPatient();if(!p)return;
+      setValueAtPath(p,e.target.dataset.documentUpload,url);
+      if(e.target.dataset.documentUploadName)setValueAtPath(p,e.target.dataset.documentUploadName,file.name);
+      markDirty();renderWorkspace();
+    }).catch(err=>alert(err.message));return;
+  }
+  if(e.target.dataset.triegerImage){
+    const file=e.target.files?.[0];if(!file)return;
+    fileToDataUrl(file).then(url=>{
+      const s=getSelectedSession();if(!s)return;
+      setValueAtPath(s,e.target.dataset.triegerImage,url);markDirty();renderWorkspace();
+    }).catch(err=>alert(err.message));return;
+  }
+  if(e.target.dataset.sessionField){const s=getSelectedSession();if(!s)return;setValueAtPath(s,e.target.dataset.sessionField,e.target.value);markDirty();renderWorkspace();return;}
+  if(e.target.dataset.settingsPath){setValueAtPath(state.settings,e.target.dataset.settingsPath,e.target.value);markDirty("Financeiro alterado");if(["finance","system","email"].includes(state.activeView))renderWorkspace();return;}
+  if(e.target.dataset.settingsRowType){updateSettingsRow(e.target.dataset.settingsRowType,e.target.dataset.settingsRowId,e.target.dataset.settingsRowField,e.target.value);if(["finance","system","email"].includes(state.activeView))renderWorkspace();return;}
+  if(e.target.dataset.path){
+    const p=getSelectedPatient();if(!p)return;setValueAtPath(p,e.target.dataset.path,e.target.value);
+    if(e.target.dataset.path==="profile.nationality"&&e.target.value!=="Outra"){p.profile.otherNationality="";renderWorkspace();}
+    markDirty();return;
+  }
+  if(e.target.dataset.arrayPath){
+    const p=getSelectedPatient();if(!p)return;
+    const cur=getValueAtPath(p,e.target.dataset.arrayPath)||[];
+    const next=new Set(cur);
+    if(e.target.checked)next.add(e.target.dataset.arrayValue);else next.delete(e.target.dataset.arrayValue);
+    setValueAtPath(p,e.target.dataset.arrayPath,[...next]);markDirty();return;
+  }
+  if(e.target.dataset.mdasIndex){
+    const p=getSelectedPatient();if(!p)return;
+    p.anxiety.mdasAnswers[Number(e.target.dataset.mdasIndex)]=Number(e.target.value);markDirty();renderWorkspace();return;
+  }
+  if(e.target.id==="sessionSelector"){state.selectedSessionId=e.target.value;renderWorkspace();return;}
+  if(e.target.id==="scheduleMonthInput"){state.scheduleMonth=e.target.value||new Date().toISOString().slice(0,7);renderWorkspace();return;}
+});
+
+document.addEventListener("click", async e => {
+  const t=e.target.closest("[data-action]");if(!t)return;
+  const action=t.dataset.action;
+  if(action==="select-patient"){openPatientView("cadastro",t.dataset.patientId);return;}
+  if(action==="switch-tab"){state.activeView="patient";state.activeTab=t.dataset.tab;renderWorkspace();return;}
+  if(action==="open-overview-view"){openOverviewView(t.dataset.view);return;}
+  if(action==="open-finance-view"){openFinanceView();return;}
+  if(action==="open-email-view"){openEmailView();return;}
+  if(action==="open-agenda-view"){openAgendaView();return;}
+  if(action==="open-system-view"){openSystemView();return;}
+  if(action==="open-patient-record"){openPatientView("cadastro",t.dataset.patientId);return;}
+  if(action==="open-session-record"){openSessionRecord(t.dataset.patientId,t.dataset.sessionId);return;}
+  if(action==="open-gallery-record"){openGalleryRecord(t.dataset.patientId);return;}
+  if(action==="open-agenda-entry"){openAgendaView(t.dataset.scheduleId);return;}
+  if(action==="open-linked-patient"){openPatientView("consultas",t.dataset.patientId);return;}
+  if(action==="switch-anamnese-section"){state.anamneseSection=t.dataset.anamneseSection;renderWorkspace();return;}
+  if(action==="create-session"){addSession();return;}
+  if(action==="delete-session"){deleteSession();return;}
+  if(action==="add-session-row"){addSessionRow(t.dataset.sessionRow);return;}
+  if(action==="remove-session-row"){removeSessionRow(t.dataset.sessionRow,t.dataset.rowId);return;}
+  if(action==="add-settings-row"){addSettingsRow(t.dataset.settingsRowType);return;}
+  if(action==="remove-settings-row"){removeSettingsRow(t.dataset.settingsRowType,t.dataset.settingsRowId);return;}
+  if(action==="save-finance-now"){saveSettingsWorkspace("Financeiro salvo");return;}
+  if(action==="change-schedule-month"){const d=Number(t.dataset.direction||0);state.scheduleMonth=d===0?new Date().toISOString().slice(0,7):shiftMonthValue(state.scheduleMonth,d);renderWorkspace();return;}
+  if(action==="create-schedule-entry"){createScheduleEntry(t.dataset.scheduleDate||"");return;}
+  if(action==="open-schedule-day"){openScheduleDay(t.dataset.scheduleDate);return;}
+  if(action==="delete-schedule-entry"){deleteSelectedScheduleEntry();return;}
+  if(action==="save-schedule-entry"){saveSettingsWorkspace("Agendamento salvo");alert("Agendamento salvo com sucesso.");return;}
+  if(action==="create-patient-appointment"){createScheduleEntry("",t.dataset.patientId);return;}
+  if(action==="link-schedule-to-patient"){const sid=document.getElementById("patientAppointmentSelector")?.value||"";if(!sid){alert("Selecione um horário livre para associar.");return;}linkScheduleToPatient(t.dataset.patientId,sid);return;}
+  if(action==="unlink-schedule-from-patient"){unlinkScheduleFromPatient(t.dataset.scheduleId);return;}
+  if(action==="upload-gallery"){await uploadGallery();return;}
+  if(action==="delete-image"){deleteImage(t.dataset.imageId);return;}
+  if(action==="print-record"){printPatientRecord();return;}
+  if(action==="export-json"){exportJson();return;}
+  if(action==="import-json"){importJson();return;}
+});
+
+els.createPatientButton.addEventListener("click",()=>createPatient());
+els.openAgendaButton.addEventListener("click",()=>openAgendaView());
+els.openPatientsButton.addEventListener("click",()=>openOverviewView("patients"));
+els.homeLogoButton.addEventListener("click",()=>openHomeView());
+els.openEmailButton.addEventListener("click",()=>openEmailView());
+els.openFinanceButton.addEventListener("click",()=>openFinanceView());
+els.openSystemButton.addEventListener("click",()=>openSystemView());
+els.logoutButton.addEventListener("click",()=>logoutFromApp());
+els.savePatientButton.addEventListener("click",()=>saveActiveWorkspace());
+els.exportPatientPdfButton.addEventListener("click",()=>printPatientRecord());
+els.deletePatientButton.addEventListener("click",()=>deleteSelectedPatient());
+els.patientSearchInput.addEventListener("input",e=>{state.search=e.target.value;renderPatientList();});
+els.loginForm.addEventListener("submit",e=>{e.preventDefault();loginToApp();});
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+function bootstrapApp() {
+  if(checkSession()){
+    const db=readDb();
+    state.auth={authenticated:true,username:AUTH_USERNAME};
+    showAppFrame();loadPatients();updateStorageIndicator();
+  } else {
+    showAuthGate();
+    if(els.loginUsernameInput)els.loginUsernameInput.value=AUTH_USERNAME;
+  }
+}
+
+bootstrapApp();
+</script>
+</body>
+</html>
