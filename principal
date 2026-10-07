@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
+  <meta name="referrer" content="no-referrer" />
   <title>SedaFlow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -441,10 +443,14 @@ textarea { min-height: 96px; resize: vertical; }
 
 <script>
 // ─── CONFIGURAÇÃO DE AUTENTICAÇÃO LOCAL ───────────────────────────────────────
-const AUTH_USERNAME = "matheusfilgueiras";
-const AUTH_PASSWORD = "Iron98.maxed";
 const STORAGE_KEY = "sedaflow_db";
+const AUTH_CONFIG_KEY = "sedaflow_auth_config";
 const SESSION_KEY = "sedaflow_session";
+const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000;
+const AUTH_PBKDF2_ITERATIONS = 180000;
+const AUTH_SALT_BYTES = 16;
+const MAX_IMAGE_UPLOAD_BYTES = 2 * 1024 * 1024;
+const MAX_DOCUMENT_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 // ─── CONSTANTES CLÍNICAS ──────────────────────────────────────────────────────
 const TABS = [
@@ -540,6 +546,12 @@ function formatTime(v) { return v||"--:--"; }
 function formatMonthLabel(m) { if(!m) return ""; const [y,mo]=m.split("-").map(Number); const d=new Date(y,(mo||1)-1,1); if(isNaN(d.getTime())) return m; return d.toLocaleDateString("pt-BR",{month:"long",year:"numeric"}); }
 function shiftMonthValue(m,delta) { const [y,mo]=(m||new Date().toISOString().slice(0,7)).split("-").map(Number); const d=new Date(y,(mo||1)-1+delta,1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
 function escapeHtml(v) { return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
+function isSafeDataUrl(value, allowedTypes=/^(image\/(png|jpe?g|gif|webp)|application\/pdf)$/i) {
+  if (typeof value !== "string" || !value.startsWith("data:")) return false;
+  const match = value.match(/^data:([^;,]+);base64,/i);
+  return Boolean(match && allowedTypes.test(match[1]));
+}
+function safeDataUrlAttribute(value, allowedTypes) { return isSafeDataUrl(value, allowedTypes) ? escapeHtml(value) : ""; }
 function getValueAtPath(o,p) { return p.split(".").reduce((a,k)=>a==null?undefined:a[k],o); }
 function setValueAtPath(o,p,v) { const keys=p.split("."); let c=o; for(let i=0;i<keys.length-1;i++){const k=keys[i]; if(typeof c[k]!=="object"||c[k]===null) c[k]={}; c=c[k];} c[keys[keys.length-1]]=v; }
 function calculateAgeFromBirthDate(bd) { if(!bd) return ""; const d=new Date(`${bd}T00:00:00`); if(isNaN(d.getTime())) return ""; const t=new Date(); let a=t.getFullYear()-d.getFullYear(); const md=t.getMonth()-d.getMonth(),dd=t.getDate()-d.getDate(); if(md<0||(md===0&&dd<0)) a--; return a>=0?String(a):""; }
@@ -603,6 +615,14 @@ function normalizePatient(p={}) {
   const np={...base.profile,...(p.profile||{})};
   np.age=calculateAgeFromBirthDate(np.birthDate);
   if(np.nationality!=="Outra") np.otherNationality="";
+  const docs={...base.documents,...(p.documents||{})};
+  if (docs.signedConsentDataUrl && !isSafeDataUrl(docs.signedConsentDataUrl)) {
+    docs.signedConsentDataUrl = "";
+    docs.signedConsentFileName = "";
+  }
+  const gallery=Array.isArray(p.gallery)
+    ? p.gallery.filter(img=>isSafeDataUrl(img?.url, /^image\/(png|jpe?g|gif|webp)$/i))
+    : [];
   return {
     ...base,...p,profile:np,
     treatment:{...base.treatment,...(p.treatment||{})},
@@ -612,9 +632,9 @@ function normalizePatient(p={}) {
     systems:{...base.systems,...(p.systems||{}),acuteConditions:Array.isArray(p.systems?.acuteConditions)?p.systems.acuteConditions:[]},
     habits:{...base.habits,...(p.habits||{}),oralHabits:Array.isArray(p.habits?.oralHabits)?p.habits.oralHabits:[]},
     anxiety:{...base.anxiety,...(p.anxiety||{})},
-    documents:{...base.documents,...(p.documents||{})},
+    documents:docs,
     sessions:Array.isArray(p.sessions)?p.sessions.map(normalizeSession):[],
-    gallery:Array.isArray(p.gallery)?p.gallery:[]
+    gallery
   };
 }
 
@@ -687,7 +707,10 @@ function importJson() {
       }
       const confirmed = confirm(`Restaurar backup com ${data.patients.length} paciente(s)?\n\nATENÇÃO: os dados atuais serão substituídos.`);
       if (!confirmed) return;
-      writeDb(data);
+      writeDb({
+        patients: data.patients.map(normalizePatient),
+        settings: normalizeSettings(data.settings || {})
+      });
       await loadPatients();
       alert("Backup restaurado com sucesso!");
     } catch (e) {
@@ -744,15 +767,81 @@ const els = {
 };
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...new Uint8Array(bytes)));
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(value), c => c.charCodeAt(0));
+}
+
+function getAuthConfig() {
+  try {
+    const raw = localStorage.getItem(AUTH_CONFIG_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+async function hashPassword(username, password, salt, iterations = AUTH_PBKDF2_ITERATIONS) {
+  if (!window.crypto?.subtle) throw new Error("Este navegador não oferece suporte a autenticação local segura.");
+  const material = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(`${username}:${password}`),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    material,
+    256
+  );
+  return bytesToBase64(bits);
+}
+
+function timingSafeEqual(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function createAuthConfig(username, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(AUTH_SALT_BYTES));
+  const config = {
+    username,
+    salt: bytesToBase64(salt),
+    passwordHash: await hashPassword(username, password, salt),
+    iterations: AUTH_PBKDF2_ITERATIONS,
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem(AUTH_CONFIG_KEY, JSON.stringify(config));
+  return config;
+}
+
+async function verifyLocalPassword(username, password, config) {
+  if (!config || username !== config.username) return false;
+  const hash = await hashPassword(username, password, base64ToBytes(config.salt), config.iterations || AUTH_PBKDF2_ITERATIONS);
+  return timingSafeEqual(hash, config.passwordHash);
+}
+
 function checkSession() {
   try {
-    const s = sessionStorage.getItem(SESSION_KEY);
-    return s === AUTH_USERNAME;
-  } catch { return false; }
+    const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+    const config = getAuthConfig();
+    if (!session || !config || session.username !== config.username || Date.now() > Number(session.expiresAt || 0)) {
+      clearSession();
+      return "";
+    }
+    return session.username;
+  } catch {
+    clearSession();
+    return "";
+  }
 }
 
 function setSession(username) {
-  sessionStorage.setItem(SESSION_KEY, username);
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username, expiresAt: Date.now() + SESSION_TIMEOUT_MS }));
 }
 
 function clearSession() {
@@ -771,6 +860,7 @@ function showAuthGate(msg="") {
   if (els.authGate) els.authGate.classList.remove("hidden");
   setLoginError(msg);
   if (els.loginPasswordInput) els.loginPasswordInput.value = "";
+  if (els.loginButton) els.loginButton.textContent = getAuthConfig() ? "Entrar" : "Criar acesso local";
 }
 
 function showAppFrame() {
@@ -783,12 +873,22 @@ function showAppFrame() {
   }
 }
 
-function loginToApp() {
+async function loginToApp() {
   const username = els.loginUsernameInput?.value?.trim() || "";
   const password = els.loginPasswordInput?.value || "";
   if (!username || !password) { setLoginError("Preencha o login e a senha para continuar."); return; }
-  if (username !== AUTH_USERNAME || password !== AUTH_PASSWORD) {
-    setLoginError("Login ou senha inválidos."); return;
+  if (password.length < 10) { setLoginError("Use uma senha local com pelo menos 10 caracteres."); return; }
+  try {
+    const config = getAuthConfig();
+    if (!config) {
+      await createAuthConfig(username, password);
+    } else if (!(await verifyLocalPassword(username, password, config))) {
+      setLoginError("Login ou senha inválidos.");
+      return;
+    }
+  } catch (error) {
+    setLoginError(error.message || "Não foi possível validar o acesso local.");
+    return;
   }
   setSession(username);
   state.auth = { authenticated: true, username };
@@ -1009,7 +1109,7 @@ async function uploadGallery() {
   if(!p||!input?.files?.length){alert("Selecione pelo menos uma imagem.");return;}
   const files=[...input.files];
   for(const f of files){
-    const dataUrl=await fileToDataUrl(f);
+    const dataUrl=await fileToDataUrl(f, { allowedTypes: /^image\//i, maxBytes: MAX_IMAGE_UPLOAD_BYTES });
     const img={id:createId("image"),createdAt:new Date().toISOString(),note:noteInput?.value||"",category:"geral",fileName:f.name,mimeType:f.type,url:dataUrl};
     p.gallery.unshift(img);
   }
@@ -1023,8 +1123,15 @@ function deleteImage(imageId) {
   saveAll();markSaved("Imagem removida");render();
 }
 
-function fileToDataUrl(file) {
-  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(new Error("Falha ao ler imagem."));r.readAsDataURL(file);});
+function fileToDataUrl(file, { allowedTypes=/^image\//i, maxBytes=MAX_IMAGE_UPLOAD_BYTES } = {}) {
+  if (!allowedTypes.test(file.type || "")) return Promise.reject(new Error("Tipo de arquivo não permitido."));
+  if (file.size > maxBytes) return Promise.reject(new Error("Arquivo maior que o limite permitido."));
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>isSafeDataUrl(r.result, /^(image\/(png|jpe?g|gif|webp)|application\/pdf)$/i) ? res(r.result) : rej(new Error("Arquivo inválido."));
+    r.onerror=()=>rej(new Error("Falha ao ler arquivo."));
+    r.readAsDataURL(file);
+  });
 }
 
 // ─── PDF (IMPRESSÃO) ──────────────────────────────────────────────────────────
@@ -1032,22 +1139,24 @@ function printPatientRecord() {
   const p = getSelectedPatient();
   if (!p) { alert("Selecione um paciente para imprimir a ficha."); return; }
   const mdasScore = getMdasScore(p);
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Ficha - ${p.profile.fullName||"Paciente"}</title>
+  const pv = (value, fallback="—") => escapeHtml(value || fallback);
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Ficha - ${pv(p.profile.fullName,"Paciente")}</title>
   <style>body{font-family:Arial,sans-serif;font-size:11pt;color:#111;margin:20px} h1{font-size:16pt;margin-bottom:4px} h2{font-size:13pt;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px} table{width:100%;border-collapse:collapse;margin-bottom:12px} td{padding:5px 8px;border:1px solid #ddd;vertical-align:top} td:first-child{font-weight:bold;width:35%;background:#f5f5f5} .badge{display:inline-block;padding:3px 10px;border-radius:12px;background:#e8f2ff;font-weight:bold;font-size:10pt} @media print{body{margin:10px}}</style>
   </head><body>
   <h1>SedaFlow — Ficha Clínica</h1>
   <p style="color:#666;font-size:10pt">Gerado em ${new Date().toLocaleDateString("pt-BR")} • Dr. Matheus Filgueiras</p>
   <h2>Identificação</h2>
-  <table><tr><td>Nome completo</td><td>${p.profile.fullName||"—"}</td></tr><tr><td>Data de nascimento</td><td>${p.profile.birthDate?formatDate(p.profile.birthDate):"—"} (${p.profile.age||"—"} anos)</td></tr><tr><td>Sexo</td><td>${p.profile.sex||"—"}</td></tr><tr><td>Telefone</td><td>${p.profile.phone||"—"}</td></tr><tr><td>E-mail</td><td>${p.profile.email||"—"}</td></tr><tr><td>Profissão</td><td>${p.profile.profession||"—"}</td></tr></table>
+  <table><tr><td>Nome completo</td><td>${pv(p.profile.fullName)}</td></tr><tr><td>Data de nascimento</td><td>${p.profile.birthDate?escapeHtml(formatDate(p.profile.birthDate)):"—"} (${pv(p.profile.age)} anos)</td></tr><tr><td>Sexo</td><td>${pv(p.profile.sex)}</td></tr><tr><td>Telefone</td><td>${pv(p.profile.phone)}</td></tr><tr><td>E-mail</td><td>${pv(p.profile.email)}</td></tr><tr><td>Profissão</td><td>${pv(p.profile.profession)}</td></tr></table>
   <h2>Avaliação Clínica</h2>
-  <table><tr><td>Classificação ASA</td><td>${p.clinicalAssessment.asaClass||"—"}</td></tr><tr><td>PA basal</td><td>${p.clinicalAssessment.bloodPressureBaseline||"—"}</td></tr><tr><td>SpO2 basal</td><td>${p.clinicalAssessment.spo2Baseline||"—"}</td></tr><tr><td>Respiração nasal</td><td>${p.clinicalAssessment.nasalBreathing||"—"}</td></tr><tr><td>Observações de via aérea</td><td>${p.clinicalAssessment.airwayNotes||"—"}</td></tr><tr><td>Queixa principal</td><td>${p.treatment.complaint||"—"}</td></tr></table>
+  <table><tr><td>Classificação ASA</td><td>${pv(p.clinicalAssessment.asaClass)}</td></tr><tr><td>PA basal</td><td>${pv(p.clinicalAssessment.bloodPressureBaseline)}</td></tr><tr><td>SpO2 basal</td><td>${pv(p.clinicalAssessment.spo2Baseline)}</td></tr><tr><td>Respiração nasal</td><td>${pv(p.clinicalAssessment.nasalBreathing)}</td></tr><tr><td>Observações de via aérea</td><td>${pv(p.clinicalAssessment.airwayNotes)}</td></tr><tr><td>Queixa principal</td><td>${pv(p.treatment.complaint)}</td></tr></table>
   <h2>Escalas de Ansiedade</h2>
-  <table><tr><td>EVA de ansiedade</td><td>${p.anxiety.evaScore||"—"} / 10</td></tr><tr><td>MDAS</td><td>${mdasScore} / 25 — ${getMdasClassification(mdasScore)}</td></tr></table>
+  <table><tr><td>EVA de ansiedade</td><td>${pv(p.anxiety.evaScore)} / 10</td></tr><tr><td>MDAS</td><td>${mdasScore} / 25 — ${escapeHtml(getMdasClassification(mdasScore))}</td></tr></table>
   <h2>Sessões de Sedação (${p.sessions.length})</h2>
-  ${p.sessions.length===0?'<p>Nenhuma sessão registrada.</p>':p.sessions.map(s=>`<table><tr><td>Data</td><td>${formatDate(s.date)}</td></tr><tr><td>Procedimento</td><td>${s.procedure||"—"}</td></tr><tr><td>Profissional sedacionista</td><td>${s.clinician||SEDATION_PROFESSIONAL}</td></tr><tr><td>SpO2 basal</td><td>${s.spo2Baseline||"—"}</td></tr><tr><td>N2O inicial</td><td>${s.initialNitrous||"—"}%</td></tr><tr><td>Tempo total</td><td>${s.totalSedationTime||"—"}</td></tr><tr><td>Wilson na alta</td><td>${s.dischargeWilson||"—"}</td></tr></table>`).join("")}
+  ${p.sessions.length===0?'<p>Nenhuma sessão registrada.</p>':p.sessions.map(s=>`<table><tr><td>Data</td><td>${escapeHtml(formatDate(s.date))}</td></tr><tr><td>Procedimento</td><td>${pv(s.procedure)}</td></tr><tr><td>Profissional sedacionista</td><td>${pv(s.clinician || SEDATION_PROFESSIONAL)}</td></tr><tr><td>SpO2 basal</td><td>${pv(s.spo2Baseline)}</td></tr><tr><td>N2O inicial</td><td>${pv(s.initialNitrous)}%</td></tr><tr><td>Tempo total</td><td>${pv(s.totalSedationTime)}</td></tr><tr><td>Wilson na alta</td><td>${pv(s.dischargeWilson)}</td></tr></table>`).join("")}
   </body></html>`;
   const w = window.open("", "_blank");
   if (!w) { alert("O navegador bloqueou a nova aba. Habilite popups para este site."); return; }
+  w.opener = null;
   w.document.write(html);
   w.document.close();
   w.focus();
@@ -1207,7 +1316,8 @@ function renderAnamneseTab(p) {
 
 function renderDocumentosTab(p) {
   const score=getMdasScore(p);
-  const hasConsent=Boolean(p.documents.signedConsentDataUrl);
+  const consentUrl=safeDataUrlAttribute(p.documents.signedConsentDataUrl);
+  const hasConsent=Boolean(consentUrl);
   return `<article class="surface-card section-block"><p class="eyebrow">Ansiedade odontológica</p>
   <div class="form-grid">${textField("EVA de ansiedade (0-10)","anxiety.evaScore",p.anxiety.evaScore,"span-3","number")}${textAreaField("Comportamento observado pelo profissional","habits.observedBehavior",p.habits.observedBehavior,"span-9")}</div>
   <div class="mdas-grid">${MDAS_QUESTIONS.map((q,i)=>`<article class="mdas-question"><p><strong>${i+1}.</strong> ${q}</p><label class="field"><span>Resposta</span><select data-mdas-index="${i}"><option value="0">Selecione</option>${MDAS_OPTIONS.map(o=>`<option value="${o.value}" ${Number(p.anxiety.mdasAnswers[i])===o.value?"selected":""}>${o.label}</option>`).join("")}</select></label></article>`).join("")}</div>
@@ -1218,7 +1328,7 @@ function renderDocumentosTab(p) {
     ${textField("TCLE assinado em","documents.consentDate",p.documents.consentDate,"span-4","date")}
     ${textAreaField("Observações do TCLE","documents.consentNotes",p.documents.consentNotes,"span-8")}
     <label class="field span-12"><span>Upload do TCLE assinado</span><input type="file" accept=".pdf,image/*" data-document-upload="documents.signedConsentDataUrl" data-document-upload-name="documents.signedConsentFileName"/><small>Envie o TCLE já assinado pelo paciente.</small></label>
-    ${hasConsent?`<article class="reference-card span-12 document-upload-card"><p class="card-heading">TCLE assinado anexado</p><p>${escapeHtml(p.documents.signedConsentFileName||"Arquivo enviado")}</p><a class="secondary-button pdf-action" href="${p.documents.signedConsentDataUrl}" download="${escapeHtml(p.documents.signedConsentFileName||"tcle-assinado")}" target="_blank" rel="noreferrer">Abrir documento anexado</a></article>`:'<div class="info-banner span-12">Nenhum TCLE assinado foi anexado ainda.</div>'}
+    ${hasConsent?`<article class="reference-card span-12 document-upload-card"><p class="card-heading">TCLE assinado anexado</p><p>${escapeHtml(p.documents.signedConsentFileName||"Arquivo enviado")}</p><a class="secondary-button pdf-action" href="${consentUrl}" download="${escapeHtml(p.documents.signedConsentFileName||"tcle-assinado")}" target="_blank" rel="noopener noreferrer">Abrir documento anexado</a></article>`:'<div class="info-banner span-12">Nenhum TCLE assinado foi anexado ainda.</div>'}
     ${textAreaField("Outros documentos ou observações","documents.extraDocsNotes",p.documents.extraDocsNotes,"span-12")}
   </div></article>
   <article class="surface-card section-block"><p class="eyebrow">Imprimir ficha clínica</p>
@@ -1271,11 +1381,11 @@ function renderSessaoTab(p) {
     <article class="reference-card"><p class="card-heading">Trieger inicial</p>
     <div class="form-grid">${sessionField("Hora","trieger.initialTime",session.trieger.initialTime,"span-6","time")}${sessionTextArea("Observações","trieger.initialNotes",session.trieger.initialNotes,"span-12")}</div>
     <label class="field"><span>Foto do teste inicial</span><input type="file" accept="image/*" data-trieger-image="trieger.initialImageDataUrl"/></label>
-    ${session.trieger.initialImageDataUrl?`<img class="trieger-preview" src="${session.trieger.initialImageDataUrl}" alt="Trieger inicial"/>`:'<p class="muted">Nenhuma imagem enviada.</p>'}</article>
+    ${isSafeDataUrl(session.trieger.initialImageDataUrl, /^image\/(png|jpe?g|gif|webp)$/i)?`<img class="trieger-preview" src="${safeDataUrlAttribute(session.trieger.initialImageDataUrl, /^image\/(png|jpe?g|gif|webp)$/i)}" alt="Trieger inicial"/>`:'<p class="muted">Nenhuma imagem enviada.</p>'}</article>
     <article class="reference-card"><p class="card-heading">Trieger final</p>
     <div class="form-grid">${sessionField("Hora","trieger.finalTime",session.trieger.finalTime,"span-6","time")}${sessionTextArea("Observações","trieger.finalNotes",session.trieger.finalNotes,"span-12")}</div>
     <label class="field"><span>Foto do teste final</span><input type="file" accept="image/*" data-trieger-image="trieger.finalImageDataUrl"/></label>
-    ${session.trieger.finalImageDataUrl?`<img class="trieger-preview" src="${session.trieger.finalImageDataUrl}" alt="Trieger final"/>`:'<p class="muted">Nenhuma imagem enviada.</p>'}</article>
+    ${isSafeDataUrl(session.trieger.finalImageDataUrl, /^image\/(png|jpe?g|gif|webp)$/i)?`<img class="trieger-preview" src="${safeDataUrlAttribute(session.trieger.finalImageDataUrl, /^image\/(png|jpe?g|gif|webp)$/i)}" alt="Trieger final"/>`:'<p class="muted">Nenhuma imagem enviada.</p>'}</article>
   </div></div>
   <div class="surface-card section-block"><p class="eyebrow">Referência da escala de Wilson</p>
   <div class="wilson-reference-grid">${Object.entries(WILSON_REFERENCE).map(([k,d])=>`<article class="reference-card wilson-reference-card"><p class="card-heading">Escore ${k}</p><p>${d}</p></article>`).join("")}</div></div>
@@ -1365,7 +1475,7 @@ function renderGaleriaTab(p) {
     <button class="primary-button" type="button" data-action="upload-gallery">Fazer upload</button>
   </div>
   <div class="info-banner">⚠️ Imagens ficam salvas como base64 no localStorage. Arquivos grandes podem lotar o espaço disponível (~5 MB). Prefira imagens comprimidas.</div>
-  <div class="gallery-grid">${!p.gallery.length?'<p class="muted">Nenhuma imagem enviada ainda.</p>':p.gallery.map(img=>`<article class="gallery-card"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.fileName)}"/><h4>${escapeHtml(img.fileName)}</h4><p>${escapeHtml(img.note||"Sem observação")}</p><p class="muted">${formatDate(img.createdAt)}</p><button class="danger-button" type="button" data-action="delete-image" data-image-id="${img.id}">Excluir imagem</button></article>`).join("")}</div></article>`;
+  <div class="gallery-grid">${!p.gallery.length?'<p class="muted">Nenhuma imagem enviada ainda.</p>':p.gallery.map(img=>`<article class="gallery-card"><img src="${safeDataUrlAttribute(img.url, /^image\/(png|jpe?g|gif|webp)$/i)}" alt="${escapeHtml(img.fileName)}"/><h4>${escapeHtml(img.fileName)}</h4><p>${escapeHtml(img.note||"Sem observação")}</p><p class="muted">${formatDate(img.createdAt)}</p><button class="danger-button" type="button" data-action="delete-image" data-image-id="${img.id}">Excluir imagem</button></article>`).join("")}</div></article>`;
 }
 
 function renderAgendaCalendar(entries,selectedEntry,monthValue) {
@@ -1456,7 +1566,7 @@ function renderSessionsOverview() {
 function renderGalleryOverview() {
   const pts=state.patients.filter(p=>p.gallery.length);
   if(!pts.length) return `<article class="surface-card section-block"><p class="eyebrow">Galeria</p><h3 class="finance-title">Nenhuma imagem enviada</h3></article>`;
-  return pts.map(p=>`<article class="surface-card section-block"><div class="overview-section-header"><div><p class="eyebrow">Galeria do paciente</p><h3 class="finance-title">${escapeHtml(p.profile.fullName||"Sem nome")}</h3></div><button class="secondary-button" type="button" data-action="open-gallery-record" data-patient-id="${p.id}">Abrir galeria</button></div><div class="overview-gallery-grid">${p.gallery.map(img=>`<button class="gallery-card gallery-card-button" type="button" data-action="open-gallery-record" data-patient-id="${p.id}"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.fileName)}"/><h4>${escapeHtml(img.fileName)}</h4><p>${escapeHtml(img.note||"Sem observação")}</p></button>`).join("")}</div></article>`).join("");
+  return pts.map(p=>`<article class="surface-card section-block"><div class="overview-section-header"><div><p class="eyebrow">Galeria do paciente</p><h3 class="finance-title">${escapeHtml(p.profile.fullName||"Sem nome")}</h3></div><button class="secondary-button" type="button" data-action="open-gallery-record" data-patient-id="${p.id}">Abrir galeria</button></div><div class="overview-gallery-grid">${p.gallery.map(img=>`<button class="gallery-card gallery-card-button" type="button" data-action="open-gallery-record" data-patient-id="${p.id}"><img src="${safeDataUrlAttribute(img.url, /^image\/(png|jpe?g|gif|webp)$/i)}" alt="${escapeHtml(img.fileName)}"/><h4>${escapeHtml(img.fileName)}</h4><p>${escapeHtml(img.note||"Sem observação")}</p></button>`).join("")}</div></article>`).join("");
 }
 
 // ─── RENDER STATS E ALERTAS ───────────────────────────────────────────────────
@@ -1585,7 +1695,7 @@ document.addEventListener("input", e => {
 document.addEventListener("change", e => {
   if(e.target.dataset.documentUpload){
     const file=e.target.files?.[0];if(!file)return;
-    fileToDataUrl(file).then(url=>{
+    fileToDataUrl(file, { allowedTypes: /^(application\/pdf|image\/)/i, maxBytes: MAX_DOCUMENT_UPLOAD_BYTES }).then(url=>{
       const p=getSelectedPatient();if(!p)return;
       setValueAtPath(p,e.target.dataset.documentUpload,url);
       if(e.target.dataset.documentUploadName)setValueAtPath(p,e.target.dataset.documentUploadName,file.name);
@@ -1594,7 +1704,7 @@ document.addEventListener("change", e => {
   }
   if(e.target.dataset.triegerImage){
     const file=e.target.files?.[0];if(!file)return;
-    fileToDataUrl(file).then(url=>{
+    fileToDataUrl(file, { allowedTypes: /^image\//i, maxBytes: MAX_IMAGE_UPLOAD_BYTES }).then(url=>{
       const s=getSelectedSession();if(!s)return;
       setValueAtPath(s,e.target.dataset.triegerImage,url);markDirty();renderWorkspace();
     }).catch(err=>alert(err.message));return;
@@ -1676,13 +1786,13 @@ els.loginForm.addEventListener("submit",e=>{e.preventDefault();loginToApp();});
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 function bootstrapApp() {
-  if(checkSession()){
+  const sessionUser = checkSession();
+  if(sessionUser){
     const db=readDb();
-    state.auth={authenticated:true,username:AUTH_USERNAME};
+    state.auth={authenticated:true,username:sessionUser};
     showAppFrame();loadPatients();updateStorageIndicator();
   } else {
-    showAuthGate();
-    if(els.loginUsernameInput)els.loginUsernameInput.value=AUTH_USERNAME;
+    showAuthGate(getAuthConfig() ? "" : "Crie um login local. A senha não fica publicada no código do site.");
   }
 }
 
